@@ -114,7 +114,7 @@ Gig workers operate on weekly cash flows. ShiftSafe-DT aligns with their financi
 ## 🔗 8. Phase 1 Deliverables Links
 
 *   **GitHub Repository:** [https://github.com/anshika1179/ShiftSafe-DT](https://github.com/anshika1179/ShiftSafe-DT)
-*   **Phase 1 Strategy & Prototype Video:** `[Insert Public Video Link Here]` *(Focus: Showing the end-to-end automated claim flow)*
+*   **Phase 1 Strategy & Prototype Video:** [▶️ Watch Demo](https://youtu.be/Dlwt3ch3y5A) *(Focus: Showing the end-to-end automated claim flow)*
 
 ---
 <div align="center">
