@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppState } from '@/frontend/components/providers/AppProvider';
 
@@ -13,14 +13,22 @@ const COVERAGE_TRIGGERS = [
 
 const BREAKDOWN_BARS = [
   { key: 'weather', label: 'Weather Risk Contribution', color: '#4d9fff' },
-  { key: 'zone', label: 'Zone Flood Risk', color: '#ff6b35' },
+  { key: 'zone', label: 'Zone / AQI Risk', color: '#ff6b35' },
   { key: 'platform', label: 'Platform Outage Frequency', color: '#34d399' },
   { key: 'claims', label: 'Claims History Factor', color: '#ff3b5c' },
+];
+
+const PAYOUT_CHANNELS = [
+  { name: 'UPI Transfer', icon: '📱', desc: 'Instant, preferred — worker already uses it', status: 'Primary' },
+  { name: 'IMPS to Bank', icon: '🏦', desc: 'Fallback if UPI not linked', status: 'Fallback' },
+  { name: 'Razorpay Sandbox', icon: '💳', desc: 'For demo / hackathon simulation', status: 'Demo' },
 ];
 
 export default function PoliciesPage() {
   const router = useRouter();
   const { worker, policy, claims, isLoggedIn } = useAppState();
+  const [insuranceActive, setInsuranceActive] = useState(true);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn) router.replace('/');
@@ -31,7 +39,8 @@ export default function PoliciesPage() {
   const riskLabel = policy?.riskLabel ?? 'Low';
 
   const totalPaid = claims.reduce((s, c) => s + c.amount, 0);
-  const annualEquivalent = (policy?.weeklyPremium || 28) * 52;
+  const weeklyPremium = policy?.weeklyPremium || 35;
+  const maxPayoutCap = Math.round((worker?.avgWeeklyEarnings || 4200) * 0.50);
 
   const startDateFormatted = policy?.startDate
     ? new Date(policy.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -40,19 +49,101 @@ export default function PoliciesPage() {
     ? new Date(policy.nextPaymentDue).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : '2 Apr 2026';
 
+  const handleOptOut = () => {
+    setShowCancelConfirm(false);
+    setInsuranceActive(false);
+    // Non-blocking API call
+    if (policy?.id) {
+      fetch('/api/policies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ policyId: policy.id, action: 'cancel' }),
+      }).catch(() => {});
+    }
+  };
+
+  const handleReactivate = () => {
+    setInsuranceActive(true);
+    if (policy?.id) {
+      fetch('/api/policies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ policyId: policy.id, action: 'reactivate' }),
+      }).catch(() => {});
+    }
+  };
+
   return (
     <div className="space-y-5 max-w-[480px] mx-auto fade-in pb-8">
       <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Policy Details</h1>
 
-      {/* ─── Policy Header ─── */}
+      {/* insurance opt-out toggle */}
+      <div className={`glass-card p-4 flex items-center justify-between ${!insuranceActive ? 'border-red-200' : ''}`}
+           style={!insuranceActive ? { background: 'rgba(239, 68, 68, 0.03)' } : {}}>
+        <div className="flex items-center gap-3">
+          <span className="text-lg">{insuranceActive ? '🛡️' : '⚠️'}</span>
+          <div>
+            <div className="text-sm font-semibold text-slate-900">
+              Insurance Coverage
+            </div>
+            <div className="text-[11px] text-gray-500">
+              {insuranceActive ? 'Your coverage is active — you are protected' : 'Coverage cancelled — you are not covered'}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => insuranceActive ? setShowCancelConfirm(true) : handleReactivate()}
+          className={`relative w-12 h-6 rounded-full transition-all ${insuranceActive ? 'bg-emerald-500' : 'bg-gray-300'}`}
+        >
+          <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all ${insuranceActive ? 'left-6' : 'left-0.5'}`} />
+        </button>
+      </div>
+
+      {/* cancel confirmation modal */}
+      {showCancelConfirm && (
+        <div className="glass-card p-5 border-red-200" style={{ background: 'rgba(239, 68, 68, 0.04)' }}>
+          <div className="text-sm font-bold text-red-600 mb-2">⚠️ Cancel Insurance Coverage?</div>
+          <p className="text-xs text-gray-600 mb-4">
+            You will lose all coverage including weather, heatwave, and platform outage protection.
+            You can re-enroll at any time, but a new 7-day activity period will be required.
+          </p>
+          <div className="flex gap-3">
+            <button onClick={handleOptOut} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-all">
+              Yes, Cancel Coverage
+            </button>
+            <button onClick={() => setShowCancelConfirm(false)} className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition-all">
+              Keep Active
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* reactivation banner */}
+      {!insuranceActive && (
+        <div className="glass-card p-4 border-amber-200" style={{ background: 'rgba(245, 158, 11, 0.05)' }}>
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🔔</span>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-slate-900">Want to get protected again?</div>
+              <div className="text-[11px] text-gray-500">Reactivate your coverage instantly</div>
+            </div>
+            <button onClick={handleReactivate} className="btn btn-primary px-4 py-2 text-xs font-bold rounded-lg">
+              Reactivate
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* policy header */}
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Policy ID</div>
             <div className="text-sm font-bold text-slate-900 font-mono">{policy?.id || 'POL-001'}</div>
           </div>
-          <span className="badge-success inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${insuranceActive ? 'badge-success' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${insuranceActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            {insuranceActive ? 'Active' : 'Cancelled'}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
@@ -62,26 +153,45 @@ export default function PoliciesPage() {
           </div>
           <div>
             <span className="uppercase tracking-wider text-[10px] font-semibold">Next Payment</span>
-            <div className="text-sm text-slate-800 font-medium mt-0.5">{nextPaymentFormatted}</div>
+            <div className="text-sm text-slate-800 font-medium mt-0.5">{insuranceActive ? nextPaymentFormatted : '—'}</div>
           </div>
         </div>
       </div>
 
-      {/* ─── Premium Stats Grid ─── */}
+      {/* premium tier & 50% cap info */}
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-card p-5 text-center">
           <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-2">Weekly Premium</div>
-          <div className="text-3xl font-extrabold text-primary-500">₹{policy?.weeklyPremium || 28}</div>
+          <div className="text-3xl font-extrabold text-primary-500">₹{weeklyPremium}</div>
+          <div className="text-[10px] text-gray-400 mt-1">Fixed tier</div>
         </div>
         <div className="glass-card p-5 text-center">
-          <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-2">Coverage Amount</div>
-          <div className="text-3xl font-extrabold text-slate-900">₹{policy?.coverageAmount?.toLocaleString() || '2,940'}</div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-2">Max Payout (50%)</div>
+          <div className="text-3xl font-extrabold text-slate-900">₹{maxPayoutCap.toLocaleString()}</div>
+          <div className="text-[10px] text-gray-400 mt-1">50% of weekly income</div>
         </div>
       </div>
 
-      {/* ─── AI Risk Score ─── */}
+      {/* pricing formula */}
       <div className="glass-card p-5">
-        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">AI Risk Score</div>
+        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Pricing Formula</div>
+        <div className="text-[10px] text-gray-400 font-mono mb-3">Weekly Premium Calculation</div>
+        <div className="bg-slate-50 rounded-xl p-4 mb-3">
+          <div className="text-xs font-mono text-slate-700 leading-relaxed">
+            <span className="text-primary-500 font-bold">Base</span> = trigger_probability × avg_income_lost/day × days_exposed
+          </div>
+          <div className="text-xs font-mono text-slate-700 mt-1.5">
+            <span className="text-primary-500 font-bold">Final</span> = Base × seasonal_multiplier → mapped to fixed tier
+          </div>
+        </div>
+        <div className="text-[10px] text-gray-500 leading-relaxed">
+          Premium is fixed per tier (₹20 / ₹35 / ₹50 per week). Adjusted for city risk pool, peril type, and worker activity tier. Weekly cycle matches gig payout rhythm.
+        </div>
+      </div>
+
+      {/* ai risk score */}
+      <div className="glass-card p-5">
+        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Risk Score</div>
         <div className="flex items-center gap-3 mb-2">
           <div className="text-2xl font-extrabold text-slate-900">{riskScore}<span className="text-sm text-gray-400">/100</span></div>
           <div className="flex-1">
@@ -91,14 +201,14 @@ export default function PoliciesPage() {
           </div>
         </div>
         <div className="text-xs font-mono" style={{ color: riskColor }}>
-          Model: GBDT-v2.1 · {riskLabel} Risk Zone
+          {riskLabel} Risk · Parametric Pricing Model v3.0
         </div>
       </div>
 
-      {/* ─── AI PREMIUM BREAKDOWN (Critical for 5★) ─── */}
+      {/* ai premium breakdown */}
       <div className="glass-card p-5">
-        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">AI Premium Breakdown</div>
-        <div className="text-[10px] text-gray-400 font-mono mb-4">Gradient Boosted Decision Tree Analysis</div>
+        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Premium Breakdown</div>
+        <div className="text-[10px] text-gray-400 font-mono mb-4">Risk Factor Contributions</div>
 
         <div className="space-y-4">
           {BREAKDOWN_BARS.map(b => {
@@ -118,7 +228,7 @@ export default function PoliciesPage() {
         </div>
       </div>
 
-      {/* ─── Coverage Triggers ─── */}
+      {/* coverage triggers */}
       <div>
         <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-1">Coverage Triggers</div>
         <div className="space-y-2">
@@ -129,23 +239,45 @@ export default function PoliciesPage() {
                 <div className="text-sm font-semibold text-slate-900">{t.name}</div>
                 <div className="text-[11px] text-gray-500">{t.desc}</div>
               </div>
-              <span className="badge-success px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">ON</span>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${insuranceActive ? 'badge-success' : 'bg-gray-100 text-gray-400'}`}>
+                {insuranceActive ? 'ON' : 'OFF'}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ─── Policy Details ─── */}
+      {/* settlement / payout channels */}
+      <div>
+        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-1">Payout Channels</div>
+        <div className="space-y-2">
+          {PAYOUT_CHANNELS.map(ch => (
+            <div key={ch.name} className="glass-card px-4 py-3 flex items-center gap-3">
+              <span className="text-lg">{ch.icon}</span>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-slate-900">{ch.name}</div>
+                <div className="text-[11px] text-gray-500">{ch.desc}</div>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${ch.status === 'Primary' ? 'badge-success' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                {ch.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* policy details */}
       <div className="glass-card p-5">
         <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Policy Summary</div>
         <div className="space-y-3">
           {[
             { label: 'Platform', value: worker?.platform || 'Zomato' },
             { label: 'Zone', value: worker?.zone || 'Andheri East' },
+            { label: 'Premium Tier', value: `₹${weeklyPremium}/week (Fixed)` },
+            { label: 'Max Payout Cap', value: `50% (₹${maxPayoutCap})` },
             { label: 'Start Date', value: startDateFormatted },
-            { label: 'Next Payment', value: nextPaymentFormatted },
-            { label: 'Total Paid', value: `₹${totalPaid.toLocaleString()}` },
-            { label: 'Annual Premium (equiv.)', value: `₹${annualEquivalent.toLocaleString()}` },
+            { label: 'Next Payment', value: insuranceActive ? nextPaymentFormatted : 'N/A' },
+            { label: 'Total Claimed', value: `₹${totalPaid.toLocaleString()}` },
             { label: 'UPI ID', value: worker?.upiId || 'ravi.kumar@upi' },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
@@ -156,10 +288,26 @@ export default function PoliciesPage() {
         </div>
       </div>
 
-      {/* ─── Renew Button ─── */}
-      <button className="btn btn-ghost w-full py-3.5 text-sm font-bold tracking-wider uppercase">
-        🔄 Renew Policy
-      </button>
+      {/* renew / cancel buttons */}
+      <div className="flex gap-3">
+        {insuranceActive ? (
+          <>
+            <button className="btn btn-primary flex-1 py-3.5 text-sm font-bold tracking-wider uppercase">
+              🔄 Renew Policy
+            </button>
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="btn btn-ghost flex-1 py-3.5 text-sm font-bold tracking-wider uppercase text-red-500 hover:bg-red-50"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button onClick={handleReactivate} className="btn btn-primary w-full py-3.5 text-sm font-bold tracking-wider uppercase">
+            🛡️ Reactivate Coverage
+          </button>
+        )}
+      </div>
     </div>
   );
 }

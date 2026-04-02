@@ -4,7 +4,8 @@
   "description": "Parametric micro-insurance for gig workers.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#060d16",
+  "background_color": "#fdfdfd",
+  "orientation": "portrait",
   "theme_color": "#f97316",
   "icons": [
     {

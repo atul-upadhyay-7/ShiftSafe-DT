@@ -24,35 +24,82 @@ function useChartJs() {
   return loaded;
 }
 
-type ViewTab = 'worker' | 'admin';
+type ViewTab = 'worker' | 'actuarial' | 'stress';
 
 const BREAKDOWN_ITEMS = [
   { key: 'weather', label: 'Weather Risk', color: '#4d9fff' },
-  { key: 'zone', label: 'Zone Flood Risk', color: '#ff6b35' },
+  { key: 'zone', label: 'Zone / AQI Risk', color: '#ff6b35' },
   { key: 'platform', label: 'Platform Outage', color: '#34d399' },
   { key: 'claims', label: 'Claims History', color: '#ff3b5c' },
 ];
+
+interface ActuarialData {
+  snapshot: {
+    bcr: number;
+    lossRatio: number;
+    totalPremiumCollected: number;
+    totalClaimsPaid: number;
+    activePolicies: number;
+    totalWorkers: number;
+    isHealthy: boolean;
+    recommendation: string;
+  };
+  liveStressTests: {
+    monsoon: StressResult;
+    delhiHazard: StressResult;
+  };
+  weeklyMetrics: Array<{
+    period_start: string;
+    period_end: string;
+    bcr: number;
+    loss_ratio: number;
+    total_premium_collected: number;
+    total_claims_paid: number;
+  }>;
+}
+
+interface StressResult {
+  scenarioName: string;
+  durationDays: number;
+  triggerFrequency: number;
+  totalEstimatedPayout: number;
+  totalPremiumInPeriod: number;
+  bcrUnderStress: number;
+  lossRatioUnderStress: number;
+  isSustainable: boolean;
+  reserveRequired: number;
+  recommendation: string;
+  assumptions: string[];
+}
 
 export default function AnalyticsPage() {
   const router = useRouter();
   const { worker, policy, claims, totalEarningsProtected, isLoggedIn } = useAppState();
   const [tab, setTab] = useState<ViewTab>('worker');
   const chartLoaded = useChartJs();
+  const [actuarialData, setActuarialData] = useState<ActuarialData | null>(null);
+  const [loadingActuarial, setLoadingActuarial] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn) router.replace('/');
   }, [isLoggedIn, router]);
+
+  // Fetch actuarial data when switching to actuarial/stress tab
+  useEffect(() => {
+    if ((tab === 'actuarial' || tab === 'stress') && !actuarialData) {
+      setLoadingActuarial(true);
+      fetch('/api/actuarial')
+        .then(r => r.json())
+        .then(data => setActuarialData(data))
+        .catch(() => {})
+        .finally(() => setLoadingActuarial(false));
+    }
+  }, [tab, actuarialData]);
+
   const barRef = useRef<HTMLCanvasElement>(null);
-  const doughnutRef = useRef<HTMLCanvasElement>(null);
   const barChartRef = useRef<any>(null);
-  const doughnutChartRef = useRef<any>(null);
 
-  const claimsByType = claims.reduce((acc, c) => {
-    acc[c.triggerType] = (acc[c.triggerType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const totalPremiumPaid = policy?.totalPremiumPaid || (policy?.weeklyPremium || 28) * 2;
+  const totalPremiumPaid = policy?.totalPremiumPaid || (policy?.weeklyPremium || 35) * 2;
   const claimsCount = claims.length;
 
   // Bar chart for Worker View
@@ -65,19 +112,19 @@ export default function AnalyticsPage() {
     barChartRef.current = new Chart(barRef.current, {
       type: 'bar',
       data: {
-        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
         datasets: [
           {
             label: 'Premium Paid (₹)',
-            data: [28, 28, 0, 28, 28, 28],
+            data: [35, 35, 35, 35],
             backgroundColor: 'rgba(249, 115, 22, 0.7)',
             borderColor: '#f97316',
             borderWidth: 1,
             borderRadius: 6,
           },
           {
-            label: 'Claims Received (₹/10)',
-            data: [0, 0, 205, 0, 147, 0],
+            label: 'Claims Received (₹)',
+            data: [0, 300, 0, 500],
             backgroundColor: 'rgba(77, 159, 255, 0.7)',
             borderColor: '#4d9fff',
             borderWidth: 1,
@@ -106,73 +153,32 @@ export default function AnalyticsPage() {
     });
   }, [chartLoaded, tab]);
 
-  // Doughnut chart for Admin View
-  useEffect(() => {
-    if (!chartLoaded || tab !== 'admin' || !doughnutRef.current) return;
-    
-    if (doughnutChartRef.current) doughnutChartRef.current.destroy();
-    
-    const Chart = window.Chart;
-    const rainCount = claimsByType['heavy_rain'] || 1;
-    const heatCount = claimsByType['heatwave'] || 1;
-    const outageCount = claimsByType['platform_outage'] || 0;
-    const pollCount = claimsByType['pollution'] || 0;
-
-    doughnutChartRef.current = new Chart(doughnutRef.current, {
-      type: 'doughnut',
-      data: {
-        labels: ['Heavy Rain', 'Extreme Heat', 'Platform Outage', 'Pollution'],
-        datasets: [{
-          data: [rainCount, heatCount, outageCount, pollCount],
-          backgroundColor: ['#34d399', '#ff6b35', '#4d9fff', '#a78bfa'],
-          borderWidth: 0,
-        }],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: '#64748b', font: { size: 11 }, padding: 15 },
-          },
-        },
-      },
-    });
-  }, [chartLoaded, tab, claimsByType]);
-
-  // Admin stats
-  const activePolicies = 1;
-  const lossRatio = totalEarningsProtected > 0
-    ? Math.round((totalEarningsProtected / (totalPremiumPaid + 1)) * 100)
-    : 0;
-
   const flaggedClaims = claims.filter(c => c.fraudScore > 40);
 
   return (
     <div className="space-y-5 max-w-[480px] mx-auto fade-in pb-8">
       <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Analytics</h1>
 
-      {/* ─── Tab Toggle ─── */}
+      {/* tab toggle */}
       <div className="flex p-1 rounded-xl bg-slate-100 border border-slate-200">
-        <button
-          onClick={() => setTab('worker')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            tab === 'worker' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500'
-          }`}
-        >
-          👤 Worker View
-        </button>
-        <button
-          onClick={() => setTab('admin')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            tab === 'admin' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500'
-          }`}
-        >
-          🏢 Admin View
-        </button>
+        {[
+          { id: 'worker' as ViewTab, emoji: '👤', label: 'Worker' },
+          { id: 'actuarial' as ViewTab, emoji: '📊', label: 'Actuarial' },
+          { id: 'stress' as ViewTab, emoji: '⚡', label: 'Stress Test' },
+        ].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+              tab === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            {t.emoji} {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* ─── WORKER VIEW ─── */}
+      {/* ═══════════ WORKER VIEW ═══════════ */}
       {tab === 'worker' && (
         <>
           {/* Stats */}
@@ -197,7 +203,7 @@ export default function AnalyticsPage() {
 
           {/* Weekly Premium Breakdown */}
           <div className="glass-card p-5">
-            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Weekly Premium Breakdown</div>
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Premium Breakdown</div>
             <div className="space-y-3">
               {BREAKDOWN_ITEMS.map(item => {
                 const value = policy?.contributions?.[item.key as keyof typeof policy.contributions] ?? 25;
@@ -214,93 +220,295 @@ export default function AnalyticsPage() {
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 text-center">
               <span className="text-[10px] text-emerald-600 font-mono font-semibold tracking-wider">
-                AI MODEL — GBDT-v2.1 · Gradient Boosted Trees
+                Parametric Pricing Model v3.0
               </span>
             </div>
           </div>
 
-          {/* Monthly Coverage Chart */}
+          {/* Weekly Coverage Chart */}
           <div className="glass-card p-5">
-            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Monthly Coverage Overview</div>
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Weekly Coverage Overview</div>
             <canvas ref={barRef} height="200" />
           </div>
         </>
       )}
 
-      {/* ─── ADMIN VIEW ─── */}
-      {tab === 'admin' && (
+      {/* ═══════════ ACTUARIAL VIEW ═══════════ */}
+      {tab === 'actuarial' && (
         <>
-          {/* Portfolio Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="glass-card p-4">
-              <div className="text-xl font-bold text-emerald-500">1</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Active Workers</div>
+          {loadingActuarial ? (
+            <div className="glass-card p-8 text-center">
+              <div className="w-8 h-8 mx-auto border-3 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="text-sm text-gray-500">Loading actuarial metrics...</div>
             </div>
-            <div className="glass-card p-4">
-              <div className="text-xl font-bold text-slate-900">{activePolicies}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Active Policies</div>
-            </div>
-            <div className="glass-card p-4">
-              <div className="text-xl font-bold text-amber-500">{lossRatio}%</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Loss Ratio</div>
-            </div>
-            <div className="glass-card p-4">
-              <div className="text-xl font-bold text-primary-500">₹{totalPremiumPaid}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Premium Collected</div>
-            </div>
-          </div>
-
-          {/* Fraud Detection Queue */}
-          <div className="glass-card p-5">
-            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Fraud Detection Queue</div>
-            {flaggedClaims.length === 0 ? (
-              <div className="text-sm text-emerald-600 font-medium py-2">
-                ✅ No claims under review — AI cleared all recent claims
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {flaggedClaims.map(c => (
-                  <div key={c.id} className="flex items-center gap-3 p-3 rounded-lg border border-red-100 bg-red-50">
-                    <span className="text-lg">{c.triggerEmoji}</span>
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-slate-900">{worker?.name || 'Worker'} — {c.triggerName}</div>
-                      <div className="text-xs text-gray-500">Fraud Score: {c.fraudScore}/100</div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-red-100 text-red-600 border border-red-200">
-                      REVIEW
-                    </span>
+          ) : (
+            <>
+              {/* BCR Card */}
+              <div className="glass-card p-5">
+                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">
+                  Burning Cost Rate (BCR)
+                </div>
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="text-4xl font-extrabold" style={{
+                    color: (actuarialData?.snapshot?.bcr ?? 0.65) <= 0.70 ? '#34d399' :
+                           (actuarialData?.snapshot?.bcr ?? 0.65) <= 0.85 ? '#f59e0b' : '#ef4444'
+                  }}>
+                    {(actuarialData?.snapshot?.bcr ?? 0.65).toFixed(2)}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Trigger Analysis Chart */}
-          <div className="glass-card p-5">
-            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Trigger Analysis</div>
-            <canvas ref={doughnutRef} height="250" />
-          </div>
-
-          {/* Recent All Claims */}
-          <div>
-            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-1">All Claims</div>
-            <div className="space-y-2">
-              {claims.map(c => (
-                <div key={c.id} className="glass-card px-4 py-3 flex items-center gap-3">
-                  <span className="text-lg">{c.triggerEmoji}</span>
                   <div className="flex-1">
-                    <div className="text-sm font-semibold text-slate-900">{c.triggerName}</div>
-                    <div className="text-[11px] text-gray-500">{c.relativeTime}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-mono" style={{ color: c.fraudColor }}>{c.fraudScore}/100</div>
-                    <div className="text-sm font-bold text-emerald-500">₹{c.amount}</div>
+                    <div className="text-xs text-gray-500 mb-1">Target: 0.55 — 0.70</div>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden relative">
+                      {/* Target zone indicator */}
+                      <div className="absolute h-full bg-emerald-100 rounded-full" style={{ left: '55%', width: '15%' }} />
+                      <div className="h-full rounded-full transition-all duration-1000 relative z-10" style={{
+                        width: `${Math.min((actuarialData?.snapshot?.bcr ?? 0.65) * 100, 100)}%`,
+                        background: (actuarialData?.snapshot?.bcr ?? 0.65) <= 0.70 ? '#34d399' :
+                                   (actuarialData?.snapshot?.bcr ?? 0.65) <= 0.85 ? '#f59e0b' : '#ef4444',
+                      }} />
+                    </div>
+                    <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+                      <span>0</span><span>0.55</span><span>0.70</span><span>0.85</span><span>1.0</span>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="text-xs text-gray-600 bg-slate-50 rounded-lg p-3">
+                  {actuarialData?.snapshot?.recommendation || '✅ BCR within target range'}
+                </div>
+              </div>
+
+              {/* Key Metrics Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="glass-card p-4">
+                  <div className="text-xl font-bold text-emerald-500">
+                    ₹{(actuarialData?.snapshot?.totalPremiumCollected ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Premium Collected</div>
+                </div>
+                <div className="glass-card p-4">
+                  <div className="text-xl font-bold text-red-400">
+                    ₹{(actuarialData?.snapshot?.totalClaimsPaid ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Claims Paid</div>
+                </div>
+                <div className="glass-card p-4">
+                  <div className="text-xl font-bold text-slate-900">
+                    {actuarialData?.snapshot?.activePolicies ?? 0}
+                  </div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Active Policies</div>
+                </div>
+                <div className="glass-card p-4">
+                  <div className="text-xl font-bold text-amber-500">
+                    {(actuarialData?.snapshot?.lossRatio ?? 0).toFixed(1)}%
+                  </div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Loss Ratio</div>
+                </div>
+              </div>
+
+              {/* Formula Explanation */}
+              <div className="glass-card p-5">
+                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">How BCR Works</div>
+                <div className="bg-slate-50 rounded-xl p-4 mb-3">
+                  <div className="text-xs font-mono text-slate-700">
+                    <span className="text-primary-500 font-bold">BCR</span> = Total Claims Paid ÷ Total Premium Collected
+                  </div>
+                </div>
+                <div className="space-y-2 text-[11px] text-gray-600">
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5">●</span>
+                    <span>Target BCR: 0.55–0.70 → 65 paise per ₹1 goes to payouts</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">●</span>
+                    <span>BCR &gt; 0.85 → Warning: unsustainable pricing</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-red-500 mt-0.5">●</span>
+                    <span>Loss Ratio &gt; 85% → Suspend new enrollments</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Weekly BCR Trend */}
+              {actuarialData?.weeklyMetrics && actuarialData.weeklyMetrics.length > 0 && (
+                <div className="glass-card p-5">
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Weekly BCR Trend</div>
+                  <div className="space-y-2">
+                    {actuarialData.weeklyMetrics.map((m, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="text-[10px] text-gray-500 w-20 shrink-0">
+                          {new Date(m.period_start).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </div>
+                        <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{
+                            width: `${Math.min(m.bcr * 100, 100)}%`,
+                            background: m.bcr <= 0.70 ? '#34d399' : m.bcr <= 0.85 ? '#f59e0b' : '#ef4444',
+                          }} />
+                        </div>
+                        <div className="text-xs font-bold w-10 text-right" style={{
+                          color: m.bcr <= 0.70 ? '#34d399' : m.bcr <= 0.85 ? '#f59e0b' : '#ef4444',
+                        }}>
+                          {m.bcr.toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fraud Detection Queue */}
+              <div className="glass-card p-5">
+                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Fraud Detection Queue</div>
+                {flaggedClaims.length === 0 ? (
+                  <div className="text-sm text-emerald-600 font-medium py-2">
+                    ✅ No claims under review — AI cleared all recent claims
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {flaggedClaims.map(c => (
+                      <div key={c.id} className="flex items-center gap-3 p-3 rounded-lg border border-red-100 bg-red-50">
+                        <span className="text-lg">{c.triggerEmoji}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold text-slate-900">{worker?.name || 'Worker'} — {c.triggerName}</div>
+                          <div className="text-xs text-gray-500">Fraud Score: {c.fraudScore}/100</div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-red-100 text-red-600 border border-red-200">
+                          REVIEW
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </>
+      )}
+
+      {/* ═══════════ STRESS TEST VIEW ═══════════ */}
+      {tab === 'stress' && (
+        <>
+          {loadingActuarial ? (
+            <div className="glass-card p-8 text-center">
+              <div className="w-8 h-8 mx-auto border-3 border-primary-500 border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="text-sm text-gray-500">Loading stress scenarios...</div>
+            </div>
+          ) : (
+            <>
+              <div className="text-xs text-gray-500 px-1">
+                Stress scenarios test how the model behaves under extreme conditions. At least 1 scenario is required.
+              </div>
+
+              {/* Monsoon Stress Scenario */}
+              {actuarialData?.liveStressTests?.monsoon && (
+                <StressScenarioCard scenario={actuarialData.liveStressTests.monsoon} emoji="🌧️" />
+              )}
+
+              {/* Delhi Hazard Scenario */}
+              {actuarialData?.liveStressTests?.delhiHazard && (
+                <StressScenarioCard scenario={actuarialData.liveStressTests.delhiHazard} emoji="🌡️" />
+              )}
+
+              {/* Settlement Flow */}
+              <div className="glass-card p-5">
+                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Settlement Flow</div>
+                <div className="space-y-3">
+                  {[
+                    { step: 1, name: 'Trigger Confirmed', desc: 'Oracle / weather API confirms event threshold', icon: '🔍' },
+                    { step: 2, name: 'Eligibility Check', desc: 'Active policy, correct zone, no duplicate claim', icon: '✅' },
+                    { step: 3, name: 'Payout Calculated', desc: 'Fixed amount × trigger days, 50% cap applied', icon: '🧮' },
+                    { step: 4, name: 'Transfer Initiated', desc: 'UPI / IMPS / direct bank — under few minutes', icon: '💸' },
+                    { step: 5, name: 'Record Updated', desc: 'PolicyCenter logs payout, BillingCenter reconciles', icon: '📋' },
+                  ].map(s => (
+                    <div key={s.step} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-sm shrink-0">
+                        {s.icon}
+                      </div>
+                      <div className="flex-1 pt-0.5">
+                        <div className="text-sm font-semibold text-slate-900">{s.step}. {s.name}</div>
+                        <div className="text-[11px] text-gray-500">{s.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="text-[11px] text-emerald-700 font-medium">
+                    <strong>Parametric:</strong> Trigger fires → system pays → done within minutes
+                  </div>
+                  <div className="text-[10px] text-emerald-600 mt-0.5">
+                    vs Traditional: Worker files claim → waits 15–30 days → maybe paid
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// stress scenario card component
+function StressScenarioCard({ scenario, emoji }: { scenario: StressResult; emoji: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={`glass-card p-5 ${!scenario.isSustainable ? 'border-red-200' : 'border-emerald-200'}`}
+         style={{ background: !scenario.isSustainable ? 'rgba(239, 68, 68, 0.03)' : 'rgba(16, 185, 129, 0.03)' }}>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-2xl">{emoji}</span>
+        <div className="flex-1">
+          <div className="text-sm font-bold text-slate-900">{scenario.scenarioName}</div>
+          <div className="text-[11px] text-gray-500">{scenario.durationDays} days · {(scenario.triggerFrequency * 100).toFixed(0)}% trigger rate</div>
+        </div>
+        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+          scenario.isSustainable
+            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+            : 'bg-red-50 text-red-600 border border-red-200'
+        }`}>
+          {scenario.isSustainable ? 'OK' : 'RISK'}
+        </span>
+      </div>
+
+      {/* Key metrics */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Est. Payout</div>
+          <div className="text-lg font-bold text-red-400">₹{scenario.totalEstimatedPayout.toLocaleString()}</div>
+        </div>
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Premium In Period</div>
+          <div className="text-lg font-bold text-emerald-500">₹{scenario.totalPremiumInPeriod.toLocaleString()}</div>
+        </div>
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">BCR (Stress)</div>
+          <div className="text-lg font-bold" style={{ color: scenario.bcrUnderStress <= 1 ? '#f59e0b' : '#ef4444' }}>
+            {scenario.bcrUnderStress.toFixed(2)}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Reserve Needed</div>
+          <div className="text-lg font-bold text-amber-500">₹{scenario.reserveRequired.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* Recommendation */}
+      <div className={`text-xs p-3 rounded-lg ${!scenario.isSustainable ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+        {scenario.recommendation}
+      </div>
+
+      {/* Expand assumptions */}
+      <button onClick={() => setExpanded(!expanded)} className="text-[11px] text-primary-500 font-semibold mt-3 hover:underline">
+        {expanded ? '▼ Hide Assumptions' : '▶ Show Assumptions'}
+      </button>
+      {expanded && (
+        <div className="mt-2 p-3 bg-slate-50 rounded-lg space-y-1">
+          {scenario.assumptions.map((a, i) => (
+            <div key={i} className="text-[11px] text-gray-600 flex items-start gap-1.5">
+              <span className="text-gray-400 mt-0.5">•</span>
+              <span>{a}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

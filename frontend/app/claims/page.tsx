@@ -79,7 +79,7 @@ export default function ClaimsPage() {
         </div>
       </div>
 
-      {/* ─── Summary Stats ─── */}
+      {/* summary stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="glass-card p-4 text-center">
           <div className="text-xl font-bold text-slate-900">{claims.length}</div>
@@ -95,7 +95,7 @@ export default function ClaimsPage() {
         </div>
       </div>
 
-      {/* ─── Demo Simulator ─── */}
+      {/* demo simulator */}
       <div className="glass-card p-5" style={{ borderColor: 'rgba(239, 68, 68, 0.15)' }}>
         <div className="flex items-center gap-2 mb-4">
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -135,7 +135,7 @@ export default function ClaimsPage() {
         )}
       </div>
 
-      {/* ─── Claims History ─── */}
+      {/* claims history */}
       <div>
         <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-1">Claims History</div>
         <div className="space-y-3">
