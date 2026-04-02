@@ -1,0 +1,46 @@
+name: ShiftSafe Parametric Automation Pipeline
+
+on:
+  schedule:
+    # Runs at minute 0 past every hour (e.g., 1:00, 2:00, 3:00)
+    - cron: '0 * * * *'
+  
+  # Allow manual triggering from the GitHub Actions tab for testing
+  workflow_dispatch: 
+
+jobs:
+  trigger-oracles-and-payouts:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Hit the Deployed ShiftSafe Cron Endpoint
+        env:
+          # These must be set securely in your GitHub Repository -> Settings -> Secrets
+          PROD_URL: ${{ secrets.PROD_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$PROD_URL" ]; then
+            echo "Error: PROD_URL is not set in GitHub Secrets."
+            exit 1
+          fi
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Error: CRON_SECRET is not set in GitHub Secrets."
+            exit 1
+          fi
+
+          echo "Pinging ShiftSafe Automation Engine at $PROD_URL"
+          
+          # Use curl with silent/fail modes, injecting the secret as a Bearer token
+          response=$(curl --write-out "%{http_code}" --silent --output response.txt \
+            -X POST "$PROD_URL/api/triggers/cron" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json")
+
+          if [ "$response" -eq 200 ]; then
+            echo "✅ Automation Triggered successfully!"
+            cat response.txt
+          else
+            echo "❌ Failed to trigger automation. HTTP Status: $response"
+            cat response.txt
+            exit 1
+          fi
