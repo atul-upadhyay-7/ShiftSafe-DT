@@ -31,8 +31,9 @@ jobs:
           echo "Pinging ShiftSafe Automation Engine at $PROD_URL"
           
           # Use curl with silent/fail modes, injecting the secret as a Bearer token
-          response=$(curl --write-out "%{http_code}" --silent --output response.txt \
-            -X POST "$PROD_URL/api/triggers/cron" \
+          # Added -L to follow 308 redirects and removed -X POST because the route uses GET
+          response=$(curl -L --write-out "%{http_code}" --silent --output response.txt \
+            "$PROD_URL/api/triggers/cron" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
 
