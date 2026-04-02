@@ -504,8 +504,29 @@ npm run dev
 - Phone: Any 10-digit number (e.g., `9876543210`)
 - OTP: `123456`
 
-> 💡 **Hackathon Architecture Note on Authentication:** 
-> We explicitly bypassed real Twilio/SMS verification for this submission and hardcoded the OTP. Relying on real telecom APIs during live pitch demos frequently results in delayed texts, rate-limit blocking, and severe evaluation friction since trial accounts require pre-verified numbers. This intentional design choice guarantees that any judge or mentor can instantly test the end-to-end platform using their own mobile device without friction.
+---
+
+### 🏗️ Architectural Decisions & Hackathon Trade-offs
+*A transparent breakdown of what is live, what is simulated, and **why**, demonstrating production-level system design.*
+
+#### 1. "Explainable" AI vs. Black-Box LLMs
+Instead of using Generative AI (LLMs) to determine financial risk—which is banned by financial regulators as a "black box" algorithm—we built a **Deterministic Heuristic Engine** (`actuarial-engine.ts`) and an **Anomaly Detection Matrix** (`fraud-engine.ts`) directly into our Node.js backend. This allows our risk calculations to instantly compute based on strict weights (City Tiers, Frequency Velocity, Seasonal Multipliers) without 3-second API latency. It proves mathematical explainability, which is mandatory for InsurTech.
+
+#### 2. Frictionless Authentication (Twilio Bypass)
+**What:** OTP is hardcoded to `123456`.
+**Why:** Relying on real telecom APIs during live pitch demos frequently results in delayed texts or rate-limit blocking on trial accounts. Hardcoding the OTP guarantees that any judge or evaluator can instantly test the end-to-end platform using their own mobile device with zero friction.
+
+#### 3. Real Atmospheric Oracles vs. Simulated Events
+**What:** We integrated live **OpenWeatherMap** (Satellites) & **AQICN** (Gov. Air Quality) APIs to read real-time environmental data via a Cron Job.
+**Why:** If there is no real-world storm during our hackathon demo, our app shouldn't sit idle! We built a "Simulate Trigger" override so we can manually spawn localized weather events (e.g., 55mm Rain in Mumbai) to demonstrate the rapid payout pipeline to judges on command. 
+
+#### 4. The Settlement Pipeline (Razorpay / UPI)
+**What:** The engine calculates exact payouts and logs `UPI-TXN-XXXXXX` receipts into the Neon Postgres database.
+**Why:** We decoupled the actual financial `POST` request to UPI/Razorpay to avoid processing real money transfers during evaluation. The architecture proves the **Speed** of parametric settlement (< 2 seconds) while keeping the environment financially sandboxed.
+
+#### 5. Food Aggregator Private Data
+**What:** Users manually input their "Weekly Earnings" and "Days Active".
+**Why:** Platforms like Zomato/Swiggy do not expose open OAuth APIs to read private rider data. In production, an aggregator partnership would auto-pull this data; for the hackathon, user-input simulate the data stream.
 
 ### API Endpoints Reference
 
