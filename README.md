@@ -478,10 +478,12 @@ Every claim is scored 0–100 **before** approval (never after payment):
 # 1. Clone & Install
 git clone https://github.com/anshika1179/ShiftSafe-DT.git
 cd ShiftSafe-DT
-./setup.sh          # or: npm install && cp .env.example .env.local
+npm install 
+cp .env.example .env
 
 # 2. Run Development Server
-./start.sh           # or: npm run dev
+cd frontend
+npm run dev
 # Opens at http://localhost:3000
 ```
 
@@ -773,10 +775,19 @@ Costs:
 
 ---
 
+---
+
+## 🔗 Phase 2 Deliverables & Submission Links
+
+*   🌐 **Live Deployed Platform:** [ShiftSafe-DT on Vercel](https://shiftsafe-dt.vercel.app/) *(Login Demo: `9876543210` / `123456`)*
+*   ▶️ **Phase 2 Demo Video:** [▶️ Watch Full System Demo](https://youtube.com/your-video-link-here) *(Shows zero-touch automation and acturial stress testing!)*
+*   📊 **Pitch Presentation (PPT):** [View Hackathon Pitch Deck](https://docs.google.com/presentation/d/your-presentation-link-here/edit)
+*   💻 **Source Code Repository:** [GitHub - ShiftSafe-DT](https://github.com/anshika1179/ShiftSafe-DT)
+
 <div align="center">
   <i>Built to solve, not just to show. Zero-touch protection for the gig economy.</i>
   <br/><br/>
-  <b>Team DevTrails</b> · Hackathon Phase 2 Submission
+  <b>Team DevTrails</b> · Hackathon Phase 2 Final Submission
   <br/><br/>
   
   ```
