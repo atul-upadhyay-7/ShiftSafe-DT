@@ -18,7 +18,7 @@
 
 ---
 
-## 👥 1. Persona & Sub-Category Focus
+##👥 1. Persona & Sub-Category Focus
 **Sub-Category**: Food Delivery Partners (e.g., Zomato, Swiggy)
 
 **Persona Strategy**:
