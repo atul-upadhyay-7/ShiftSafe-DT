@@ -13,6 +13,7 @@ export function BottomNav() {
     { href: '/dashboard', icon: '📊', label: 'Home' },
     { href: '/policies', icon: '🛡️', label: 'Policy' },
     { href: '/claims', icon: '⚡', label: 'Claims' },
+    { href: '/actuarial', icon: '🧮', label: 'Actuarial' },
     { href: '/analytics', icon: '📈', label: 'Analytics' },
   ];
 

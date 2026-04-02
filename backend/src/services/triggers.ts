@@ -20,7 +20,7 @@ const PAYOUT_TABLE: Record<string, Record<string, number>> = {
   curfew: { moderate: 200, high: 350, severe: 500 },
 };
 
-// ──── WEATHER TRIGGER ────
+// weather trigger
 export async function checkWeatherTrigger(
   lat: number = 19.076,
   lon: number = 72.8777,
@@ -109,7 +109,7 @@ function generateMockWeatherTrigger(): TriggerResult {
   };
 }
 
-// ──── AQI / POLLUTION TRIGGER ────
+// aqi / pollution trigger
 export async function checkPollutionTrigger(
   city: string = 'mumbai',
 ): Promise<TriggerResult> {
@@ -162,7 +162,7 @@ export async function checkPollutionTrigger(
   };
 }
 
-// ──── PLATFORM OUTAGE TRIGGER ────
+// platform outage trigger
 export async function checkPlatformOutageTrigger(): Promise<TriggerResult> {
   // In production, this would ping aggregator APIs or use Downdetector
   // For hackathon: mock with controllable probability
@@ -189,7 +189,7 @@ export async function checkPlatformOutageTrigger(): Promise<TriggerResult> {
   };
 }
 
-// ──── MANUAL TRIGGER (for demo purposes) ────
+// manual trigger (for demo purposes)
 export function simulateTrigger(
   type: 'heavy_rain' | 'heatwave' | 'pollution' | 'platform_outage' | 'curfew',
   severity: 'moderate' | 'high' | 'severe' = 'high',

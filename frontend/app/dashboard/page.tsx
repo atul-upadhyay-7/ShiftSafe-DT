@@ -32,10 +32,16 @@ export default function DashboardPage() {
   const { worker, policy, claims, totalEarningsProtected, simulateTrigger, isLoggedIn } = useAppState();
   const [activeTriggers, setActiveTriggers] = useState<string[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [weatherTips, setWeatherTips] = useState<{ currentMonth: string; riskLevel: string; tips: string[]; nextMonthWarning: string | null } | null>(null);
 
   // redirect if not logged in
   useEffect(() => {
     if (!isLoggedIn) router.replace('/');
+    // fetch historical weather recommendations
+    fetch('/api/dashboard')
+      .then(r => r.json())
+      .then(d => { if (d.weatherRecommendations) setWeatherTips(d.weatherRecommendations); })
+      .catch(() => {});
   }, [isLoggedIn, router]);
 
   const riskScore = policy?.riskScore ?? 22;
@@ -103,7 +109,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 max-w-[480px] mx-auto fade-in pb-6">
-      {/* ─── Greeting ─── */}
+      {/* greeting */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">
@@ -117,7 +123,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── Coverage Shield Card ─── */}
+      {/* coverage shield card */}
       <div className="glass-card p-6 relative overflow-hidden card-accent-left-green" style={{ borderColor: 'rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.03)' }}>
         {/* Protected badge */}
         <div className="absolute top-4 right-4">
@@ -157,7 +163,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── Zone Risk Meter ─── */}
+      {/* zone risk meter */}
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Zone Risk Meter</div>
@@ -186,7 +192,52 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── Live Triggers ─── */}
+      {/* actuarial command center banner */}
+      <button
+        onClick={() => router.push('/actuarial')}
+        className="w-full glass-card p-4 flex items-center gap-4 group hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] text-left"
+        style={{ background: 'linear-gradient(135deg, rgba(15,23,42,0.04), rgba(249,115,22,0.06))', borderColor: 'rgba(249,115,22,0.2)' }}
+      >
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0"
+          style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)' }}>
+          🧮
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            Actuarial Command Center
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          </div>
+          <div className="text-[11px] text-gray-500">BCR monitoring · Stress testing · Settlement flow</div>
+        </div>
+        <span className="text-gray-400 group-hover:text-primary-500 transition-colors text-lg">→</span>
+      </button>
+
+      {/* weather intelligence — uses historical data to recommend */}
+      {weatherTips && (
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">📅 {weatherTips.currentMonth} Risk Intelligence</div>
+            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
+              weatherTips.riskLevel === 'Low' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+              weatherTips.riskLevel === 'Moderate' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+              'bg-red-50 text-red-600 border border-red-200'
+            }`}>{weatherTips.riskLevel}</span>
+          </div>
+          <div className="space-y-1.5">
+            {weatherTips.tips.map((tip, i) => (
+              <div key={i} className="text-[12px] text-gray-600 leading-relaxed">{tip}</div>
+            ))}
+          </div>
+          {weatherTips.nextMonthWarning && (
+            <div className="mt-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-700 font-medium">
+              {weatherTips.nextMonthWarning}
+            </div>
+          )}
+          <div className="text-[9px] text-gray-400 mt-2 text-right">Based on 5-year IMD + CPCB historical data</div>
+        </div>
+      )}
+
+      {/* live triggers */}
       <div>
         <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-1">Live Triggers</div>
         <div className="space-y-2">
@@ -206,7 +257,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── Recent Payouts ─── */}
+      {/* recent payouts */}
       {recentPaidClaims.length > 0 && (
         <div>
           <div className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-1">Recent Payouts</div>
@@ -225,7 +276,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ─── Demo Simulator ─── */}
+      {/* demo simulator */}
       <div className="pt-4 border-t border-slate-100">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />

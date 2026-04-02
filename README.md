@@ -149,6 +149,12 @@ Gig workers operate on weekly cash flows. ShiftSafe-DT aligns with their financi
 [![Phase](https://img.shields.io/badge/Phase-2_Automation-green?style=for-the-badge)](#)
 [![Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen?style=for-the-badge)](#)
 [![Build](https://img.shields.io/badge/Build-Passing-success?style=for-the-badge)](#)
+[![Engines](https://img.shields.io/badge/Engines-5_Active-blueviolet?style=for-the-badge)](#)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2.1-black?style=for-the-badge&logo=next.js)](#)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](#)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript)](#)
+[![SQLite](https://img.shields.io/badge/SQLite-WAL_Mode-003B57?style=for-the-badge&logo=sqlite)](#)
+[![Tailwind](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=for-the-badge&logo=tailwindcss)](#)
 
 </div>
 
@@ -156,59 +162,208 @@ Gig workers operate on weekly cash flows. ShiftSafe-DT aligns with their financi
 
 ## 🎯 Phase 2 Problem Statement
 
-> *"How can we build a fully automated, zero-paperwork income protection system for India's 30M+ gig workers?"*
+> *"How can we build a fully automated, zero-paperwork income protection system for India's 30M+ gig workers — one that is actuarially sustainable, transparent in pricing, and settles payouts in under 2 minutes?"*
 
-ShiftSafe-DT Phase 2 transforms the Phase 1 ideation into a **production-grade, executable platform** with:
-- ✅ **Real-time parametric triggers** monitoring weather, AQI, and platform outages
-- ✅ **AI-driven dynamic pricing** using a Gradient Boosted Decision Tree model (GBDT-v2.1)
-- ✅ **Automated fraud detection** via simulated Isolation Forest scoring
-- ✅ **Zero-touch claim settlement** — payouts credited before the worker even opens the app
+ShiftSafe-DT Phase 2 transforms the Phase 1 ideation into a **production-grade, executable platform** with five purpose-built engines, a mobile-first glassmorphism UI, 8 RESTful API endpoints, 9 database tables, and a fully simulated end-to-end claim pipeline:
+
+| Engine | Purpose | Key Metric | Source |
+|:-------|:--------|:----------|:-------|
+| 🧮 **Premium Engine v3.0** | Formula-based parametric pricing with city pools | `P(trigger) × avg_income_lost/day × days_exposed` | [`premium-engine.ts`](backend/src/engines/premium-engine.ts) |
+| 📋 **Underwriting Engine** | Activity-based eligibility + tier classification | Min 7 active delivery days | [`underwriting-engine.ts`](backend/src/engines/underwriting-engine.ts) |
+| 📊 **Actuarial Engine** | BCR monitoring + sustainability alerts | Target BCR: 0.55–0.70 | [`actuarial-engine.ts`](backend/src/engines/actuarial-engine.ts) |
+| 💸 **Settlement Engine** | 5-step zero-touch payout pipeline | Settlement < 2 minutes | [`settlement-engine.ts`](backend/src/engines/settlement-engine.ts) |
+| 🔍 **Fraud Engine** | Isolation Forest scoring (0–100) | Pre-payment check, 6-rule hybrid | [`fraud-engine.ts`](backend/src/engines/fraud-engine.ts) |
+
+Plus: **Historical weather-based risk intelligence**, **2 live stress test scenarios**, and **judge-facing Actuarial Command Center**
 
 ---
 
 ## ✅ Phase 2 Mandatory Requirements — 100% Implemented
 
-| # | Requirement | Implementation | Status |
-|:-:|:-----------|:--------------|:------:|
-| 1 | **Registration Process** | Frictionless 3-step onboarding: Phone → OTP → Profile. Server-side input validation (phone format, name length, platform/zone whitelisting, income range capping). Duplicate phone detection. | ✅ |
-| 2 | **Insurance Policy Management** | Active weekly policies with AI Premium Breakdown showing Weather, Zone, Platform Outage, and Claims History contributions. Auto-renewal support. Coverage triggers with defined payout percentages. | ✅ |
-| 3 | **Dynamic Premium Calculation** | **GBDT-v2.1** feature-weighted risk model with 7 weighted features, non-linear interaction terms, and weather forecast integration. Premium range: ₹15–₹65/week. Coverage = 70% of weekly earnings. | ✅ |
-| 4 | **Claims Management** | **Zero-Touch Parametric Claims** — External trigger detection → AI Fraud Engine scoring (0-100) → Push notification → Automatic UPI payout. Weekly coverage limits enforced. Daily duplicate prevention. | ✅ |
+| # | Requirement | Implementation | API | Status |
+|:-:|:-----------|:--------------|:---:|:------:|
+| 1 | **Registration Process** | 3-step onboarding (Phone → OTP `123456` → Profile) with **city selection** (Mumbai/Delhi/Gurugram/Noida), **dynamic zone dropdowns** (9 Mumbai zones, 4 Delhi zones), **platform whitelisting** (Zomato/Swiggy/Amazon Flex/Blinkit/Zepto), **activity days tracking**, and **insurance opt-in/opt-out toggle**. Server-side validation: phone format (10-digit), name length (2-100 chars), income range capping (₹500–₹50,000). Duplicate phone detection. | `POST /api/register` | ✅ |
+| 2 | **Insurance Policy Management** | Active weekly policies with fixed premium tiers (₹20/₹35/₹50). **Cancel/reactivate toggle** on policy page with confirmation modal and warning about coverage loss. Auto-renewal support. City-based risk pools (Delhi AQI pool ≠ Mumbai Rain pool). Payout channel display (UPI Primary / IMPS Fallback / Razorpay Demo). Pricing formula transparency on-screen. | `GET/PATCH /api/policies` | ✅ |
+| 3 | **Dynamic Premium Calculation** | **Parametric Pricing Model v3.0** using exact formula: `trigger_probability × avg_income_lost_per_day × days_exposed`. Seasonal multipliers (Delhi May-June +30%, Mumbai monsoon +35%). Fixed tiers mapped from raw calculation. **50% maximum payout cap.** Weekly data basis — not annual averages. Full breakdown shown during registration. | `GET /api/premium` | ✅ |
+| 4 | **Claims Management** | **Zero-Touch Parametric Claims** — External trigger detection → Fraud Engine scoring (0-100, 6-rule hybrid) → **Settlement Engine** (5-step pipeline) → UPI/IMPS payout. Weekly coverage limits enforced. Dashboard shows settlement timeline, transaction reference (`UPI-TXN-XXXXXXX`), fraud score label, and payout channel. Live trigger simulator on both Dashboard and Claims pages. | `GET/POST /api/claims` | ✅ |
 
 ---
 
-## 🧠 AI/ML Engines (Fully Executable)
+## 🧮 Engine 1: Premium Pricing — Parametric Model v3.0
 
-### 1. Dynamic Premium Pricing — GBDT-v2.1
-A multi-factor risk model that calculates personalized weekly premiums:
+### The Exact Formula
 
-| Feature | Weight | Description |
-|:--------|:------:|:-----------|
-| Rainfall (mm/hr) | 0.0028 | Real-time or forecast rainfall intensity |
-| AQI Level | 0.00095 | Air Quality Index severity |
-| Temperature (°C) | 0.018 | Heatwave risk factor |
-| Zone Flood Risk | 0.38 | Historical flood probability per zone (Mumbai zones) |
-| Platform Outage Freq | 0.42 | Historical outage rate per aggregator platform |
-| Weekly Earnings | -0.000045 | Inverse risk — higher earners have lower relative risk |
-| Claims History | 0.55 | Past claim frequency penalty |
+```
+Base Premium = trigger_probability × avg_income_lost_per_day × days_exposed
+Final        = Base × seasonal_multiplier → mapped to nearest fixed tier
+```
 
-**Non-linear interaction terms** ensure realistic risk curves (e.g., high rainfall × high flood-risk zone = compounded premium).
+### How Each Variable Is Calculated
 
-### 2. Fraud Detection — Isolation Forest Simulation
-Every claim is scored 0–100 before approval:
-- **GPS Mismatch** (+35 points) — Distance from registered zone
-- **Duplicate Claim** (+40 points) — Same event type, same day
-- **Retroactive Claim** (+60 points) — Policy was inactive at trigger time
-- **Amount Inflation** (+20 points) — Claimed amount > 120% of daily average
-- **High Frequency** (+25 points) — More than 3 claims in 30 days
-- **ML Component** — Random Isolation Forest simulation score (2-17)
+| Variable | Formula | Example (Mumbai, ₹4200/week) |
+|:---------|:--------|:-----------------------------|
+| `trigger_probability` | `1 - Π(1 - P_peril)` for all perils in city | `1 - (0.70)(0.90)(0.92)(0.94)(0.97)` = **0.4715** |
+| `avg_income_lost_per_day` | `(weekly_income ÷ 7) × 0.70` | `(4200 ÷ 7) × 0.70` = **₹420/day** |
+| `days_exposed` | Days the worker actually worked that week | **6 days** |
+| `seasonal_multiplier` | City + month specific adjustment | May-June Delhi: **1.30**, Jul-Sep Mumbai: **1.35** |
+| **Raw Premium** | All combined | `0.4715 × 420 × 6` = **₹1,188** |
+| **Fixed Tier** | Mapped to nearest tier | → **₹50/week (ShiftGuard Premium)** |
 
-| Score Range | Decision | Action |
-|:-----------:|:--------:|:-------|
-| 0–19 | ✅ CLEAN | Auto-approved, instant payout |
-| 20–39 | 🔵 LOW RISK | Auto-approved with logging |
-| 40–64 | ⚠️ REVIEW | Queued for manual admin review |
-| 65–100 | 🚫 BLOCKED | Claim rejected, flagged for investigation |
+### Trigger Probabilities (Weekly, Per City × Peril)
+
+```
+                    Delhi NCR          Mumbai
+Pollution          P = 0.35           P = 0.08
+Heatwave           P = 0.20           P = 0.10
+Heavy Rain         P = 0.10           P = 0.30
+Platform Outage    P = 0.05           P = 0.06
+Curfew             P = 0.02           P = 0.03
+```
+
+> ⚠️ **Note:** These are hypothetical weekly probabilities based on historical patterns, NOT yearly averages. Weekly data is used throughout as per hackathon guidance.
+
+### Fixed Premium Tiers
+
+| Tier | Weekly Premium | Max Payout/Week | Min Activity Days | Covered Events |
+|:-----|:-:|:-:|:-:|:-------------|
+| 🟢 **Basic** | ₹20 | ₹1,000 | 5 | Rain, Heatwave |
+| 🔵 **Standard** | ₹35 | ₹2,000 | 7 | Rain, Heatwave, Pollution, Outage |
+| 🟣 **Premium** | ₹50 | ₹3,000 | 7 | All events including Curfew |
+
+**All tiers enforce a hard 50% maximum payout cap** — a worker earning ₹4,200/week can never receive more than ₹2,100 in payouts regardless of tier.
+
+---
+
+## 📋 Engine 2: Underwriting — Who Gets Covered
+
+### Eligibility Rules
+
+```
+IF total_active_delivery_days < 7 → INELIGIBLE (need more history)
+IF platform NOT IN [Zomato, Swiggy, Amazon Flex, Blinkit, Zepto] → REJECTED
+IF days_active_in_last_30 < 5 → downgrade to Basic tier
+```
+
+### Activity Tier Classification
+
+| Days Worked This Week | Total Active Days | Assigned Tier |
+|:---------------------:|:-----------------:|:-------------|
+| 6–7 | ≥ 7 | 🟣 Premium |
+| 5 | ≥ 7 | 🔵 Standard |
+| < 5 | ≥ 7 | 🟢 Basic |
+| Any | < 7 | ❌ Ineligible |
+
+### City Pool Assignment
+
+```
+Delhi NCR (Delhi, Gurugram, Noida) → delhi_aqi pool   (AQI + heatwave heavy)
+Mumbai Metro (Mumbai, Thane, Navi Mumbai) → mumbai_rain pool (monsoon heavy)
+```
+
+Workers in the same city pool share a common risk profile, but premiums vary by individual activity.
+
+### 5-Step Onboarding
+
+```
+Step 1: Platform verification (Zomato/Swiggy/etc.)
+Step 2: Activity history check (min 7 active days)
+Step 3: Activity tier classification (Basic/Standard/Premium)
+Step 4: City pool assignment (Delhi AQI / Mumbai Rain)
+Step 5: Plan recommendation + premium quote
+```
+
+---
+
+## 📊 Engine 3: Actuarial Intelligence — BCR & Sustainability
+
+### Burning Cost Rate (BCR)
+
+```
+BCR = Total Claims Paid ÷ Total Premium Collected
+```
+
+| BCR Range | Status | Action |
+|:---------:|:------:|:-------|
+| < 0.55 | 💰 Strong | Consider lowering premiums for better adoption |
+| 0.55–0.70 | ✅ Target | Healthy zone — 65 paise per ₹1 goes to payouts |
+| 0.70–0.85 | ⚠️ Warning | Review pricing or tighten trigger thresholds |
+| > 0.85 | 🚨 Critical | **Suspend new enrollments immediately** |
+
+### Stress Scenario 1: 40-Day Monsoon (Mumbai)
+
+| Parameter | Value | Rationale |
+|:----------|:------|:----------|
+| Duration | 40 days | Typical monsoon intense period |
+| Trigger frequency | 65% of days | Based on Mumbai rainfall patterns |
+| Avg payout/trigger/worker | ₹450 | Heavy rain payout tier |
+| Participation rate | 80% | Not all workers claim every day |
+| **Result** | BCR > 40 | **UNSUSTAINABLE without reserve fund** |
+
+**Recommendation:** Suspend new enrollments 2 weeks before monsoon onset. Cap daily payouts at ₹350. Maintain reserve fund.
+
+### Stress Scenario 2: Delhi May-June Heatwave + AQI
+
+| Parameter | Value | Rationale |
+|:----------|:------|:----------|
+| Duration | 60 days | May + June combined |
+| Trigger frequency | 40% of days | AQI > 300 or temp > 42°C |
+| Avg payout/trigger/worker | ₹300 | Heatwave payout tier |
+| Participation rate | 75% | Lower than monsoon |
+| **Result** | BCR > 16 | **UNSUSTAINABLE without dynamic thresholds** |
+
+**Recommendation:** Implement dynamic trigger thresholds during peak months: AQI > 400 (not 300). Maintain separate reserve fund per city pool.
+
+> **All assumptions are explicitly disclosed** in the UI for full transparency. Every scenario uses the same pricing formula — no hidden adjustments.
+
+---
+
+## 💸 Engine 4: Settlement & Payout Pipeline
+
+### The 5-Step Zero-Touch Flow
+
+```mermaid
+sequenceDiagram
+    participant API as Weather/AQI Oracle
+    participant SE as Settlement Engine
+    participant FE as Fraud Engine
+    participant DB as Database
+    participant UPI as UPI/IMPS
+
+    API->>SE: 1. Trigger Confirmed (rainfall > 50mm)
+    SE->>DB: 2. Worker Eligibility Check (policy active, zone match, no duplicate)
+    SE->>SE: 3. Payout Calculated (₹350 × 50% cap)
+    SE->>FE: Fraud Score Check (BEFORE payment)
+    FE-->>SE: Score: 8/100 CLEAN
+    SE->>UPI: 4. Transfer Initiated (UPI primary, IMPS fallback)
+    UPI-->>SE: Transaction Ref: UPI-TXN-8721634
+    SE->>DB: 5. Record Updated (PolicyCenter + BillingCenter)
+    Note over SE,UPI: Total time: < 2 minutes
+```
+
+### Payout Channels
+
+| Channel | Priority | Settlement Time | When Used |
+|:--------|:--------:|:---------------:|:----------|
+| 📱 **UPI Transfer** | Primary | < 2 minutes | Worker already uses UPI daily — zero friction |
+| 🏦 **IMPS to Bank** | Fallback | < 5 minutes | If UPI ID not linked or UPI fails |
+| 💳 **Razorpay Sandbox** | Demo | < 1 minute | Hackathon simulation mode |
+
+### Rollback Logic
+
+```
+IF UPI transfer fails:
+  1. Auto-retry UPI once (timeout: 30s)
+  2. IF retry fails → fallback to IMPS
+  3. IF no fallback channel → flag for manual review (SLA: 4 hours)
+  4. All failed attempts logged with reason code for audit
+```
+
+### Key Design Decisions
+
+- **Fraud check happens BEFORE payment**, not after — prevents clawback complexity
+- **50% maximum payout cap** is enforced at the settlement level, not just the policy level
+- **Transaction references** are generated per-channel for reconciliation
+- **SMS confirmation** sent to worker after every successful settlement
 
 ---
 
@@ -220,60 +375,105 @@ Every claim is scored 0–100 before approval:
 | **SQL Injection** | 100% parameterized | All `db.prepare()` calls use `?` placeholders — zero string concatenation |
 | **Input Validation** | Server-side sanitization | Phone (10-digit), name (2-100 chars), platform/zone whitelisting, income capping (₹500–₹50,000) |
 | **Duplicate Prevention** | Daily + weekly guards | CRON won't double-pay same worker for same trigger type on same day |
-| **Weekly Coverage Cap** | Enforced globally | No worker can exceed `max_coverage_per_week` (₹2,000) across all triggers |
+| **Weekly Coverage Cap** | Enforced globally | No worker can exceed `max_coverage_per_week` across all triggers |
+| **Payout Cap** | 50% hard ceiling | Maximum payout = 50% of weekly income, enforced at settlement engine level |
 | **Dependency Audit** | Zero vulnerabilities | `npm audit` clean — no `uuid` dependency (using native `crypto.randomUUID()`) |
 
 ---
 
-## 🔄 Zero-Touch Claim Workflow
+## 🧠 AI/ML Engines
 
-```mermaid
-sequenceDiagram
-    participant W as Weather API
-    participant C as CRON Engine
-    participant DB as SQLite
-    participant F as Fraud Engine
-    participant P as UPI Payout
+### Fraud Detection — Isolation Forest Simulation
+Every claim is scored 0–100 **before** approval (never after payment):
 
-    C->>W: Poll weather, AQI, platform status
-    W-->>C: Rainfall 67.5mm detected in Andheri East
-    C->>DB: Find all active policies in zone
-    DB-->>C: 3 workers affected
-    loop For each worker
-        C->>DB: Check daily duplicate and weekly cap
-        C->>F: Score claim (Isolation Forest)
-        F-->>C: Score 8/100 CLEAN
-        C->>DB: INSERT claim (status paid)
-        C->>P: Auto-credit via UPI
-    end
-    Note over C,P: Total time under 2 seconds
-```
+| Flag | Points | Description |
+|:-----|:------:|:-----------|
+| GPS Mismatch | +35 | Distance from registered zone |
+| Duplicate Claim | +40 | Same event type, same day |
+| Retroactive Claim | +60 | Policy was inactive at trigger time |
+| Amount Inflation | +20 | Claimed amount > 120% of daily average |
+| High Frequency | +25 | More than 3 claims in 30 days |
+| ML Component | +2-17 | Random Isolation Forest simulation score |
+
+| Score Range | Decision | Action |
+|:-----------:|:--------:|:-------|
+| 0–19 | ✅ CLEAN | Auto-approved, instant payout |
+| 20–39 | 🔵 LOW RISK | Auto-approved with logging |
+| 40–64 | ⚠️ REVIEW | Queued for manual admin review |
+| 65–100 | 🚫 BLOCKED | Claim rejected, flagged for investigation |
+
+---
+
+## 📱 Actuarial Command Center (Judge-Facing Dashboard)
+
+> **Navigate to `/actuarial` for a live, interactive dashboard** — this page lets judges explore the actuarial engine in real-time without needing to register.
+
+### What the Command Center Shows
+
+| Tab | Features | Interactive Elements |
+|:----|:---------|:--------------------|
+| **📊 BCR Overview** | Animated SVG arc gauge showing live Burning Cost Rate with color-coded zones (Strong/Target/Warning/Critical). Weekly BCR trend chart with target zone overlay. Financial breakdown (premium collected vs claims paid). Pricing formula displayed in code-block style with syntax highlighting. | Animated gauge auto-transitions on load |
+| **⚡ Stress Tests** | Interactive **"▶ Simulate"** buttons for 40-day Mumbai Monsoon and Delhi Hazard scenarios. Animated counters show payouts, reserves, BCR, and premium in real-time with ease-out cubic easing. All assumptions expandable per scenario. | **"Run All Scenarios Simultaneously"** button, expandable assumptions |
+| **💸 Settlement** | Live animated settlement flow stepping through all 5 stages with auto-cycling animation (1.5s per step). Channel comparison (UPI/IMPS/Razorpay). Rollback logic visualization (4-step failover). ShiftSafe vs Traditional insurance side-by-side comparison. | Auto-cycling 5-step animation |
+
+### Key Design Decisions for Judges
+
+- **No login required** — Actuarial page is accessible directly at `/actuarial`
+- **All assumptions disclosed** — Every stress scenario has an expandable "View All Assumptions (Transparency)" section
+- **Real BCR data** — BCR is computed from actual database records, not hardcoded
+- **Formula transparency** — The exact pricing formula is shown in code-block syntax on every relevant page
 
 ---
 
 ## 💻 Quick Start
 
+### Prerequisites
+
+- **Node.js** ≥ 18 (uses native `crypto.randomUUID()`)
+- **npm** ≥ 9 (npm workspaces for monorepo)
+
+### Installation & Run
+
 ```bash
 # 1. Clone & Install
 git clone https://github.com/anshika1179/ShiftSafe-DT.git
 cd ShiftSafe-DT
-npm install
+./setup.sh          # or: npm install && cp .env.example .env.local
 
-# 2. Environment Setup
-cp .env.example .env.local
-# Edit .env.local and set CRON_SECRET=your_secret
-
-# 3. Run Development Server
-npm run dev
+# 2. Run Development Server
+./start.sh           # or: npm run dev
 # Opens at http://localhost:3000
+```
 
-# 4. Verify Build (optional)
-npm run build
+### Demo Walkthrough
+
+```bash
+# Step-by-step screens:
+# http://localhost:3000                    → Splash / Landing page
+# http://localhost:3000/register           → 3-step registration (Phone → OTP → Profile)
+# http://localhost:3000/dashboard          → Worker dashboard + live trigger simulator
+# http://localhost:3000/policies           → Policy details + cancel/reactivate toggle
+# http://localhost:3000/claims             → Claims history + live trigger demo
+# http://localhost:3000/analytics          → Worker / Actuarial / Stress Test tabs
+# http://localhost:3000/actuarial          → 🏆 Actuarial Command Center (no login needed)
 ```
 
 **Demo Credentials:**
-- Phone: Any 10-digit number
+- Phone: Any 10-digit number (e.g., `9876543210`)
 - OTP: `123456`
+
+### API Endpoints Reference
+
+| Method | Endpoint | Purpose | Auth |
+|:------:|:---------|:--------|:----:|
+| `POST` | `/api/register` | Register worker + underwrite + auto-create policy | — |
+| `GET` | `/api/premium` | Calculate dynamic premium (v3.0 formula) | — |
+| `GET` | `/api/dashboard` | Stats snapshot + historical weather recommendations | — |
+| `GET/POST` | `/api/claims` | List claims / Create new claim through settlement pipeline | — |
+| `GET/PATCH` | `/api/policies` | List policies / Cancel or reactivate coverage | — |
+| `GET/POST` | `/api/actuarial` | BCR snapshot + stress test results / Run stress scenario | — |
+| `POST` | `/api/triggers` | Manual trigger simulation → auto-claim pipeline | — |
+| `GET` | `/api/triggers/cron` | Secured CRON automation (requires `Bearer` token) | 🔒 |
 
 ---
 
@@ -281,32 +481,54 @@ npm run build
 
 | Layer | Technology | Purpose |
 |:------|:----------|:--------|
-| **Framework** | Next.js 16.2.1 + Turbopack | Fullstack app router with API routes |
+| **Framework** | Next.js 16.2.1 + Turbopack | Fullstack App Router with 8 API routes |
 | **Frontend** | React 19 + Tailwind CSS v4 | Glassmorphism UI with micro-animations |
-| **State** | React Context API | Centralized client state management |
-| **Backend DB** | SQLite (better-sqlite3, WAL mode) | Parameterized queries, foreign keys |
-| **AI Risk Engine** | TypeScript GBDT-v2.1 | 7-feature dynamic premium pricing |
-| **Fraud Engine** | Isolation Forest (simulated) | 6-rule hybrid scoring (0-100) |
-| **CI/CD** | GitHub Actions + CodeQL | Automated security scanning |
+| **Charts** | Chart.js 4.4.1 (CDN) | Weekly coverage bar charts |
+| **State** | React Context API | Client-side state with simulation |
+| **Backend DB** | SQLite (better-sqlite3, WAL mode) | 100% parameterized queries, FK enforcement, 9 tables |
+| **Premium Engine** | Parametric Pricing v3.0 | Formula-based with city pools + 12-month seasonal calendar |
+| **Underwriting** | Activity-Based Classification | Min 7 days, 3 tiers, 2 city pools |
+| **Actuarial** | BCR + Stress Testing | Target 0.55-0.70, 2 live scenarios with SVG gauge |
+| **Settlement** | 5-Step Pipeline | UPI/IMPS/Razorpay, rollback logic, 50% payout cap |
+| **Fraud Engine** | Isolation Forest (simulated) | 6-rule hybrid scoring (0-100), pre-payment check |
+| **Weather Intelligence** | Historical risk recommendations | 5-year IMD + CPCB data-based monthly tips |
+| **CI/CD** | GitHub Actions + CodeQL | Automated build, lint, and security scanning |
+| **Deployment** | Vercel (configured) | Next.js-optimized serverless hosting |
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ System Architecture — Phase 2
 
 ```mermaid
 graph TD;
-    A[Mobile App UX] --> B[Next.js API Routes];
-    B --> C{AI Engines};
+    A[📱 Mobile App] --> B[Next.js API Routes];
     
-    D[Weather APIs] -->|Parametric Trigger| B;
-    E[AQI Monitor] -->|Pollution Data| B;
-    F[Platform Health] -->|Outage Detection| B;
+    B --> C[🧮 Premium Engine v3.0];
+    B --> D[📋 Underwriting Engine];
+    B --> E[📊 Actuarial Engine];
+    B --> F[💸 Settlement Engine];
+    B --> G[🔍 Fraud Engine];
+    
+    H[🌦️ Weather Oracle] -->|Parametric Trigger| B;
+    I[😷 AQI Monitor] -->|Pollution Data| B;
+    J[📱 Platform Health] -->|Outage Detection| B;
+    
+    C --> K[(SQLite + WAL)];
+    D --> K;
+    E --> K;
+    F --> K;
+    G --> K;
+    
+    F -->|Score < 40| L[📱 UPI Auto-Payout];
+    F -->|UPI Fails| M[🏦 IMPS Fallback];
+    G -->|Score 40+| N[🚨 Fraud Review Queue];
+    
+    O[⏰ CRON Scheduler] -->|Every 15 min| B;
 
-    C --> G[SQLite Database];
-    C -->|Score below 40| H[UPI Auto-Payout];
-    C -->|Score 40 plus| I[Fraud Review Queue];
-    
-    J[CRON Scheduler] -->|Every 15 min| B;
+    style C fill:#f97316,color:#fff
+    style D fill:#8b5cf6,color:#fff
+    style E fill:#10b981,color:#fff
+    style F fill:#3b82f6,color:#fff
 ```
 
 ---
@@ -315,50 +537,184 @@ graph TD;
 
 ```
 ShiftSafe-DT/
-├── frontend/                        # Next.js Application
-│   ├── app/                         # App Router Pages
-│   │   ├── page.tsx                   Splash / Landing
-│   │   ├── register/page.tsx          3-step onboarding (Phone → OTP → Profile)
-│   │   ├── dashboard/page.tsx         Coverage shield + Live trigger simulator
-│   │   ├── policies/page.tsx          AI premium breakdown + Coverage triggers
-│   │   ├── claims/page.tsx            Claims history + Live trigger demo
-│   │   ├── analytics/page.tsx         Worker & Admin analytics (Chart.js)
-│   │   ├── layout.tsx                 Root layout (TopBar, BottomNav, Notifications)
-│   │   ├── globals.css                Design system (glassmorphism, animations)
-│   │   └── api/                     # RESTful API Controllers
-│   │       ├── register/route.ts      POST — Register + create policy + AI premium
-│   │       ├── premium/route.ts       GET  — Dynamic premium recalculation
-│   │       ├── claims/route.ts        GET/POST — Fetch & create claims (fraud-checked)
-│   │       ├── policies/route.ts      GET/PATCH — Fetch & update policies
-│   │       ├── dashboard/route.ts     GET  — Aggregate analytics stats
+├── frontend/                            # Next.js Application
+│   ├── app/                             # App Router Pages
+│   │   ├── page.tsx                      Landing / Splash
+│   │   ├── register/page.tsx             3-step onboarding + underwriting
+│   │   ├── dashboard/page.tsx            Coverage shield + trigger simulator
+│   │   ├── policies/page.tsx             Policy details + opt-out toggle
+│   │   ├── claims/page.tsx               Claims history + live trigger demo
+│   │   ├── analytics/page.tsx            Worker / Actuarial / Stress tabs
+│   │   ├── actuarial/page.tsx           🏆 Actuarial Command Center (judges)
+│   │   ├── layout.tsx                    Root layout (TopBar, BottomNav)
+│   │   ├── globals.css                   Design system (glassmorphism)
+│   │   ├── not-found.tsx                 Custom 404 page
+│   │   ├── global-error.tsx              Global error boundary
+│   │   └── api/                         # 8 RESTful API Endpoints
+│   │       ├── register/route.ts         POST — Register + underwrite + policy
+│   │       ├── premium/route.ts          GET  — Dynamic premium (v3.0 formula)
+│   │       ├── claims/route.ts           GET/POST — Claims + settlement pipeline
+│   │       ├── policies/route.ts         GET/PATCH — Policies + cancel/reactivate
+│   │       ├── dashboard/route.ts        GET  — Stats + actuarial snapshot
+│   │       ├── actuarial/route.ts        GET/POST — BCR + stress scenarios
 │   │       └── triggers/
-│   │           ├── route.ts           POST — Manual trigger + auto-file claims
-│   │           └── cron/route.ts      GET  — Secured CRON zero-touch automation
-│   └── src/components/              # Client UI Layer
-│       ├── providers/AppProvider.tsx   React Context (global state + simulation)
+│   │           ├── route.ts              POST — Manual trigger + auto-claims
+│   │           └── cron/route.ts         GET  — Secured CRON automation
+│   └── src/components/                  # Client UI Layer
+│       ├── providers/AppProvider.tsx      React Context (state + simulation)
 │       └── ui/
-│           ├── Navigation.tsx         TopBar + BottomNav
-│           └── Notifications.tsx      Push notifications + UPI toast
+│           ├── Navigation.tsx            TopBar + BottomNav
+│           └── Notifications.tsx         Push notifications + UPI toast
 │
-├── backend/                         # Core Business Logic
+├── backend/                             # Core Business Logic (5 Engines)
 │   └── src/
 │       ├── engines/
-│       │   ├── premium-engine.ts       GBDT-v2.1 risk pricing (7 features)
-│       │   └── fraud-engine.ts        Isolation Forest fraud detection (6 rules)
+│       │   ├── premium-engine.ts         🧮 Parametric Pricing v3.0
+│       │   ├── underwriting-engine.ts    📋 Activity-based eligibility
+│       │   ├── actuarial-engine.ts       📊 BCR + stress testing
+│       │   ├── settlement-engine.ts      💸 5-step payout pipeline
+│       │   └── fraud-engine.ts           🔍 Isolation Forest scoring
 │       ├── models/
-│       │   └── db.ts                  SQLite schema (6 tables, WAL mode, FK)
+│       │   └── db.ts                     SQLite schema (9 tables, WAL, FK)
 │       ├── services/
-│       │   └── triggers.ts            Weather, AQI, outage monitoring + mock fallback
+│       │   └── triggers.ts              Weather, AQI, outage monitoring
 │       └── utils/
-│           └── store.ts               Types, formatters, constants
+│           └── store.ts                 Types, formatters, constants
 │
-├── .github/                         # DevOps & CI/CD
-│   ├── workflows/ci.yml              Build + lint + security pipeline
-│   └── ISSUE_TEMPLATE/               Structured issue templates
-├── .env.example                     # Environment variable template
-├── setup.sh                         # One-command install
-└── start.sh                         # One-command development server
+├── .github/                             # DevOps & CI/CD
+│   ├── workflows/ci.yml                  Build + lint + security pipeline
+│   └── ISSUE_TEMPLATE/                   Structured issue templates
+├── .env.example                          Environment variable template
+├── setup.sh                              One-command install
+└── start.sh                              One-command development server
 ```
+
+---
+
+## 📊 Database Schema (9 Tables)
+
+| Table | Purpose | Key Fields |
+|:------|:--------|:-----------|
+| `workers` | Registered delivery partners | `insurance_opted_out`, `active_delivery_days`, `activity_tier` |
+| `policies` | Active/cancelled coverage | `premium_tier`, `weekly_premium`, `city_pool`, `max_payout_percent` |
+| `claims` | Filed claims with settlement | `settlement_status`, `payout_channel`, `evidence_data` |
+| `premium_calculations` | Audit trail for every pricing | `factors_json` with full formula breakdown |
+| `trigger_events` | Weather/AQI events log | `source_api`, `severity`, `affected_zones` |
+| `settlements` | Payout pipeline records | `channel`, `transaction_ref`, `failure_reason`, `retry_count` |
+| `actuarial_metrics` | Weekly BCR snapshots | `bcr`, `loss_ratio`, `scenario_type` |
+| `stress_scenarios` | Saved stress test results | `bcr_under_stress`, `is_sustainable`, `recommendation` |
+| `weekly_activity_log` | Worker weekly activity | `days_active`, `total_deliveries`, `is_eligible` |
+
+Seeded with **4 hypothetical workers** with realistic weekly data:
+1. **Ravi Kumar** (Mumbai, Zomato) — Premium tier, fully active
+2. **Priya Singh** (Delhi, Swiggy) — Standard tier, 5 days/week
+3. **Amit Patel** (Mumbai, Blinkit) — Ineligible, only 3 active days
+4. **Deepa Nair** (Mumbai, Zepto) — Opted out of insurance
+
+---
+
+## 🚀 What Makes ShiftSafe-DT Different
+
+| Other Teams | ShiftSafe-DT |
+|:------------|:-------------|
+| Static premium calculation | **Formula-based parametric pricing** with exact math disclosed on every screen |
+| "AI calculates premium" (black box) | **Every variable visible**: P(trigger), income_lost/day, seasonal multiplier, city pool |
+| No stress testing | **2 live stress scenarios** with interactive "▶ Simulate" buttons and expandable assumptions |
+| No actuarial metrics | **BCR monitoring** with animated SVG gauge and automatic enrollment suspension at 85% |
+| "Claims processed" | **5-step settlement pipeline** with rollback logic, channel fallback, and `<2 min` payout |
+| No underwriting rules | **Activity-based underwriting** — min 7 days, 3 tiers, 2 city pools |
+| No opt-out option | **Worker can cancel/reactivate** insurance from the policy page with confirmation modal |
+| Annual data | **Weekly data throughout** — matches gig worker cash flow and payout cycles |
+| No fraud detection | **6-rule Isolation Forest scoring** (0-100) runs BEFORE every payment |
+| No weather intelligence | **Historical risk recommendations** based on 5-year IMD + CPCB data per month |
+| No error handling | **Custom 404 page + global error boundary** with branded experience |
+| No PWA support | **Progressive Web App manifest** — installable on mobile home screen |
+
+---
+
+## 📱 UI Screens — Phase 2 (7 Production Screens)
+
+| # | Screen | Route | Key Features |
+|:-:|:-------|:------|:-------------|
+| 1 | **Splash / Landing** | `/` | Animated logo with glow, "AI-Powered Risk Engine" badge, one-tap "Get Started" CTA |
+| 2 | **Registration** | `/register` | 3-step flow (Phone → OTP → Profile), dynamic zone dropdowns per city, insurance opt-in/out toggle, live premium calculation with formula breakdown |
+| 3 | **Dashboard** | `/dashboard` | Coverage shield card, zone risk meter with animated bar, weather intelligence tips, live trigger indicators (5 types), demo simulator (4 trigger buttons), Actuarial Command Center banner |
+| 4 | **Policy Details** | `/policies` | Cancel/reactivate toggle with confirmation modal, pricing formula display, risk score bar, premium breakdown (4-factor), coverage triggers (5 events), payout channels (3), policy summary |
+| 5 | **Claims** | `/claims` | Summary stats (total/paid/avg time), live trigger simulator (4 buttons), fraud detection animation, full claims history with fraud score, payout ref, and trigger value per claim |
+| 6 | **Analytics** | `/analytics` | 3-tab view (Worker/Actuarial/Stress). Chart.js bar charts, BCR gauge, weekly trend, fraud queue, stress scenarios with expandable assumptions, 5-step settlement flow |
+| 7 | **Actuarial Command Center** | `/actuarial` | 🏆 Judge-facing. BCR SVG gauge, stress test simulator with animated counters, settlement flow auto-cycling animation, payout channel comparison, rollback logic, ShiftSafe vs Traditional comparison |
+
+**Design System:**
+- 🎨 **Glassmorphism** — Frosted glass cards with orange/amber accent borders
+- ✨ **Micro-animations** — Fade-in-up, pulse rings, radar sweep, floating logo, skeleton loaders
+- 📱 **Mobile-first** — Max 480px container, safe-area padding, bottom navigation
+- 🔤 **Typography** — Inter font family (300–800 weights) via Google Fonts
+
+---
+
+## 💼 Business Model — How ShiftSafe Makes Money
+
+### Revenue Streams
+
+| Stream | How It Works | % of Revenue |
+|:-------|:-------------|:------------|
+| **Premium Revenue** | ₹20-₹50/week from each enrolled worker | 60% |
+| **Aggregator Partnerships** | B2B license fee per active rider covered | 25% |
+| **Data Insights** | Anonymized risk analytics sold to city planners & insurers | 10% |
+| **Reinsurance Float** | Interest on reserve fund corpus | 5% |
+
+### Unit Economics (Per Worker Per Month)
+
+```
+Revenue:
+  Weekly premium (avg ₹35) × 4 weeks          = ₹140/month
+  Aggregator subsidy (₹10/worker/month)        = ₹ 10/month
+  Total Revenue                                = ₹150/month
+
+Costs:
+  Expected payouts (BCR 0.65 × ₹140)           = ₹ 91/month
+  Payment processing (2% of payouts)            = ₹  2/month
+  Tech infra (servers, APIs)                    = ₹  5/month
+  Total Costs                                   = ₹ 98/month
+
+  Gross Margin per Worker                       = ₹ 52/month (34.7%)
+```
+
+### Go-to-Market Strategy
+
+**Phase 1 (Months 1-3): Pilot City**
+- Partner with **1 aggregator** (Zomato or Swiggy) in Mumbai
+- Target: **500 workers** enrolled via in-app integration
+- Worker pays ₹0 for first 2 weeks (aggregator-subsidized trial)
+- Validate BCR stays within 0.55-0.70 target
+
+**Phase 2 (Months 4-8): Expand**
+- Add Delhi NCR as second city pool
+- Reach **5,000 workers** across both cities
+- Launch Premium tier (₹50/week) for high-activity riders
+- Begin selling anonymized risk data to municipal bodies
+
+**Phase 3 (Months 9-12): Scale**
+- Expand to 4+ metro cities (Bengaluru, Hyderabad, Pune, Chennai)
+- Target **50,000 workers** enrolled
+- Apply for IRDAI sandbox license for parametric microinsurance
+- Projected ARR: **₹8.4 Cr/year** (50K workers × ₹140/month × 12)
+
+### Why Aggregators Will Partner
+
+| Aggregator Pain Point | ShiftSafe Solution |
+|:---------------------|:-------------------|
+| High rider churn during monsoon/heat | Workers stay active knowing they're protected |
+| PR risk from rider welfare criticism | "We insure our riders" is powerful marketing |
+| No differentiation in rider benefits | First-mover advantage — "insured fleet" badge |
+| Regulatory pressure for gig worker welfare | Compliance-ready income protection |
+
+### Competitive Moat
+
+1. **Parametric triggers** = no claims adjustment cost (other insurers spend 15-20% on claims processing)
+2. **Weekly micro-premiums** = accessible to workers earning ₹4K-5K/week (traditional insurance requires monthly/annual commitment)
+3. **City-specific risk pools** = more accurate pricing than one-size-fits-all products
+4. **Zero-touch UX** = 10x faster claim settlement than any traditional insurer
 
 ---
 
@@ -372,6 +728,7 @@ ShiftSafe-DT/
 | P1 | Database migration | SQLite to Neon Serverless Postgres |
 | P2 | ML model training | Real claims data with scikit-learn Isolation Forest |
 | P2 | Multi-city expansion | Zone coordinates + city-specific risk profiles |
+| P2 | Reinsurance Layer | Reserve fund management + catastrophe bonds |
 
 ---
 
@@ -379,4 +736,11 @@ ShiftSafe-DT/
   <i>Built to solve, not just to show. Zero-touch protection for the gig economy.</i>
   <br/><br/>
   <b>Team DevTrails</b> · Hackathon Phase 2 Submission
+  <br/><br/>
+  
+  ```
+  Premium = P(trigger) × avg_income_lost/day × days_exposed → Fixed Tier
+  BCR = Σ Claims ÷ Σ Premium → Target: 0.55–0.70
+  Settlement = Trigger → Eligibility → Payout → Transfer → Record (< 2 min)
+  ```
 </div>
