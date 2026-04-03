@@ -695,7 +695,7 @@ on:
   workflow_dispatch: # Can also be triggered manually from GitHub
 
 env:
-  PROD_URL: ${{ secrets.PROD_URL }} # = https://shift-safe-dt-frontend.vercel.app
+  PROD_URL: ${{ secrets.PROD_URL }} # = https://shift-safe-dt-frontend-livid.vercel.app
   CRON_SECRET: ${{ secrets.CRON_SECRET }} # Must match Vercel env var
 ```
 
