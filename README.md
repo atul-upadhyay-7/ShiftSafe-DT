@@ -737,7 +737,7 @@ Set these in **Repository → Settings → Secrets and variables → Actions**:
 
 | Secret        | Value                                       | Used By                     |
 | :------------ | :------------------------------------------ | :-------------------------- |
-| `PROD_URL`    | `https://shift-safe-dt-frontend.vercel.app` | `parametric-automation.yml` |
+| `PROD_URL`    | `https://shift-safe-dt-frontend-livid.vercel.app` | `parametric-automation.yml` |
 | `CRON_SECRET` | Same value as Vercel `CRON_SECRET` env var  | `parametric-automation.yml` |
 
 > ⚠️ `CRON_SECRET` must be **identical** in both Vercel (env var) and GitHub (secret). A mismatch causes the automation to fall through to Stage 2.
@@ -752,7 +752,7 @@ Set these in **Vercel Dashboard → Project → Settings → Environment Variabl
 | :-------------------- | :------: | :-------------------------------------------------------- |
 | `DATABASE_URL`        |    ✅    | Neon Serverless Postgres connection string                |
 | `CRON_SECRET`         |    ✅    | Bearer token protecting `/api/triggers/cron`              |
-| `NEXT_PUBLIC_APP_URL` |    ✅    | `https://shift-safe-dt-frontend.vercel.app`               |
+| `NEXT_PUBLIC_APP_URL` |    ✅    | `https://shift-safe-dt-frontend-livid.vercel.app`               |
 | `OPENWEATHER_API_KEY` | Optional | Live rainfall/temperature data (falls back to simulation) |
 | `AQICN_API_KEY`       | Optional | Live AQI pollution data (falls back to simulation)        |
 
@@ -1025,9 +1025,9 @@ Costs:
 
 ## 🔗 Phase 2 Deliverables & Submission Links
 
-- 🌐 **Live Deployed Platform:** [ShiftSafe-DT on Vercel](https://shift-safe-dt-frontend.vercel.app/) _(Login Demo: `9876543210` / `123456`)_
-- ▶️ **Phase 2 Demo Video:** [▶️ Watch Full System Demo](https://youtube.com/your-video-link-here) _(Shows zero-touch automation and acturial stress testing!)_
-- 📊 **Pitch Presentation (PPT):** [View Hackathon Pitch Deck](https://docs.google.com/presentation/d/your-presentation-link-here/edit)
+- 🌐 **Live Deployed Platform:** [ShiftSafe-DT on Vercel](https://shift-safe-dt-frontend-livid.vercel.app/) _(Login Demo: `9876543210` / `123456`)_
+- ▶️ **Phase 2 Demo Video:** [▶️ Watch Full System Demo](https://drive.google.com/file/d/1ix3dya3Z1Aokun7tx29lQGWj5WolgCzf/view?usp=drive_link) _(Shows zero-touch automation and acturial stress testing!)_
+- 📊 **Pitch Presentation (PPT):** [View Hackathon Pitch Deck](https://docs.google.com/presentation/d/1eJckGP3-lfbzZO8o3h-LbPPiqFjLASzguZZHBeRzLW0/edit?usp=sharing)
 - 💻 **Source Code Repository:** [GitHub - ShiftSafe-DT](https://github.com/anshika1179/ShiftSafe-DT)
 
 <div align="center">
