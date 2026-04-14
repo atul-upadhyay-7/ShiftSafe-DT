@@ -19,18 +19,19 @@ import {
   normalizeIndianPhone,
 } from "@/backend/utils/india-market";
 
-function isMissingWorkerPayoutColumnError(error: unknown): boolean {
+function isMissingWorkerColumnError(
+  error: unknown,
+  columnNames: string[],
+): boolean {
   const message = String((error as { message?: string })?.message || error)
     .toLowerCase()
     .trim();
 
-  const mentionsPayoutColumn =
-    message.includes("payout_method") ||
-    message.includes("upi_id") ||
-    message.includes("bank_account") ||
-    message.includes("ifsc_code");
+  const mentionsTargetColumn = columnNames.some((columnName) =>
+    message.includes(columnName),
+  );
 
-  if (!mentionsPayoutColumn) {
+  if (!mentionsTargetColumn) {
     return false;
   }
 
@@ -113,7 +114,8 @@ async function insertWorkerRecord(
         activityTier,
       );
   } catch (error) {
-    if (!isMissingWorkerPayoutColumnError(error)) {
+    const payoutColumns = ["payout_method", "upi_id", "bank_account", "ifsc_code"];
+    if (!isMissingWorkerColumnError(error, payoutColumns)) {
       throw error;
     }
 
@@ -122,27 +124,59 @@ async function insertWorkerRecord(
       error,
     );
 
-    await db
-      .prepare(
-        `INSERT INTO workers (id, name, phone, email, platform, city, zone, shift_type, avg_weekly_income, vehicle_type, insurance_opted_out, active_delivery_days, days_worked_this_week, activity_tier)
+    try {
+      await db
+        .prepare(
+          `INSERT INTO workers (id, name, phone, email, platform, city, zone, shift_type, avg_weekly_income, vehicle_type, insurance_opted_out, active_delivery_days, days_worked_this_week, activity_tier)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        workerId,
-        sanitizedName,
-        sanitizedPhone,
-        safeEmail,
-        safePlatform,
-        safeCity,
-        safeZone,
-        shiftType || "full_day",
-        safeIncome,
-        vehicleType || "bike",
-        insuranceOptedOut ? 1 : 0,
-        safeActiveDays,
-        safeDaysWorked,
-        activityTier,
+        )
+        .run(
+          workerId,
+          sanitizedName,
+          sanitizedPhone,
+          safeEmail,
+          safePlatform,
+          safeCity,
+          safeZone,
+          shiftType || "full_day",
+          safeIncome,
+          vehicleType || "bike",
+          insuranceOptedOut ? 1 : 0,
+          safeActiveDays,
+          safeDaysWorked,
+          activityTier,
+        );
+    } catch (legacyError) {
+      const legacyColumns = [
+        "active_delivery_days",
+        "days_worked_this_week",
+        "activity_tier",
+      ];
+
+      if (!isMissingWorkerColumnError(legacyError, legacyColumns)) {
+        throw legacyError;
+      }
+
+      console.warn(
+        "workers activity columns unavailable; using minimal registration insert",
+        legacyError,
       );
+
+      await db
+        .prepare(
+          `INSERT INTO workers (id, name, phone, email, platform, city, zone)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          workerId,
+          sanitizedName,
+          sanitizedPhone,
+          safeEmail,
+          safePlatform,
+          safeCity,
+          safeZone,
+        );
+    }
   }
 }
 
