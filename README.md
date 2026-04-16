@@ -2,11 +2,11 @@
 
 # 🛵 ShiftSafe-DT: AI-Powered Income Protection for Delivery Partners
 
-**Phase 1: Ideation & Foundation — "Ideate & Know Your Delivery Worker"**
+**Phase 3: Scale & Optimise — Production-Ready Insurance Platform**
 
 [![Hackathon](https://img.shields.io/badge/Hackathon-Project-blue?style=for-the-badge)](https://github.com/anshika1179/ShiftSafe-DT)
-[![Phase](https://img.shields.io/badge/Phase-1_Ideation-orange?style=for-the-badge)](#)
-[![Status](https://img.shields.io/badge/Status-Foundational_Strategy-success?style=for-the-badge)](#)
+[![Phase](https://img.shields.io/badge/Phase-3_Scale_&_Optimise-green?style=for-the-badge)](#)
+[![Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)](#)
 
 _An AI-enabled parametric micro-insurance platform empowering platform-based delivery partners against uncontrollable income loss._
 
@@ -1149,7 +1149,7 @@ Costs:
 |---|------|--------|----------------|
 | 1 | Advanced Fraud Detection (ML) | ✅ Complete | 15-feature Isolation Forest with Z-Score normalization |
 | 2 | Instant Payout System | ✅ Complete | UPI/IMPS channel orchestration via settlement engine |
-| 3 | Automated CRON Triggers | ✅ Complete | Vercel CRON every 30 min → Open-Meteo + AQICN + Platform probes |
+| 3 | Automated CRON Triggers | ✅ Complete | Vercel CRON daily → Open-Meteo + AQICN + Platform probes |
 | 4 | Ward-Level Localization | ✅ Complete | 40+ wards across 9 cities with per-ward risk tiers |
 | 5 | Adverse Selection Blocking | ✅ Complete | Disaster-window enrollment locks + 48hr cooling period |
 | 6 | Claims Export (PDF + CSV) | ✅ Complete | Client-side receipt generator + server-side DB export |
@@ -1157,6 +1157,7 @@ Costs:
 | 8 | Cost Model & Sustainability | ✅ Complete | 5% platform fee + 10% operations + 3% reinsurance reserve |
 | 9 | SS Code 2020 + DPDP Act 2023 | ✅ Complete | Hardcoded 90/120-day rule + 3 explicit data consents |
 | 10 | Storytelling & Pitch Framework | ✅ Complete | 5-act narrative with real-world insurance analogies |
+| 11 | Aadhaar KYC Verification | ✅ Complete | UIDAI verification with DPDP-compliant masked storage (last 4 digits only) |
 
 ### Implementation Status — All Engines Operational
 
@@ -1219,7 +1220,7 @@ Feature Vector (15 inputs):
 - **Key file:** `frontend/app/actuarial/page.tsx`
 
 #### 🔄 Engine 6: Automated CRON Trigger Monitoring
-- **Vercel CRON:** Runs every 30 minutes (`vercel.json` → `/api/triggers/cron`)
+- **Vercel CRON:** Runs daily at midnight UTC (`vercel.json` → `/api/triggers/cron`)
 - **Data sources (no API key required):**
   - **Open-Meteo** — Real-time weather (rain mm/hr, temperature °C)
   - **Open-Meteo Air Quality** — Real-time AQI and PM2.5
@@ -1229,7 +1230,7 @@ Feature Vector (15 inputs):
   - `AQICN_API_KEY` — WAQI for official government AQI stations
 - **Flow:**
   ```
-  CRON fires (every 30 min)
+  CRON fires (daily at midnight UTC)
     → Fetch all active policy zones from DB
     → For each zone: resolve GPS coordinates (Nominatim → city fallback)
     → Check weather trigger (Open-Meteo / OpenWeatherMap)
@@ -1258,8 +1259,9 @@ Feature Vector (15 inputs):
 │                  WORKER JOURNEY                      │
 ├─────────────────────────────────────────────────────┤
 │                                                      │
-│  1. ONBOARDING (4 steps)                             │
-│     Phone → OTP (123456 demo) → Work Profile → KYC  │
+│  1. ONBOARDING (5 steps)                             │
+│     Phone → OTP (Demo: 123456) → Aadhaar KYC         │
+│     → Work Profile → Complete Profile                 │
 │     ↓                                                │
 │  2. UNDERWRITING ENGINE                              │
 │     Platform check → SS Code 2020 (90/120 days)      │
@@ -1279,7 +1281,7 @@ Feature Vector (15 inputs):
 │               AUTOMATED PROTECTION                   │
 ├─────────────────────────────────────────────────────┤
 │                                                      │
-│  5. CRON TRIGGER MONITORING (every 30 min)           │
+│  5. CRON TRIGGER MONITORING (daily at midnight UTC)   │
 │     Open-Meteo weather → AQI check → Platform probe  │
 │     ↓                                                │
 │  6. DISASTER DETECTED                                │
@@ -1369,7 +1371,7 @@ Sustainability Metrics:
 |---|---------------|--------|----------|
 | 1 | **AOI > 300** | ✅ PASS | Trigger thresholds: AQI > 200 (Open-Meteo), > 450 (AQICN). Verified in `triggers.ts` |
 | 2 | **Exclude health/life** | ✅ PASS | Policy exclusively covers **income loss from weather disruptions**. No medical, life, or vehicle coverage. |
-| 3 | **Auto payout < 2hr** | ✅ PASS | Vercel CRON runs every 30 min. Detection → fraud screen → settlement < 5 min total. `vercel.json` + `cron/route.ts` |
+| 3 | **Auto payout < 2hr** | ✅ PASS | Vercel CRON runs daily. Detection → fraud screen → settlement < 5 min total. `vercel.json` + `cron/route.ts` |
 | 4 | **Pool sustainable BCR** | ✅ PASS | BCR target 0.55-0.70. 50% weekly payout cap. Premium includes 15% buffer. Actuarial dashboard monitors in real-time. |
 | 5 | **Fraud on data** | ✅ PASS | 15-feature Isolation Forest with Z-Score normalization. No behavioral questionnaires. Pure data signals (GPS, altitude, battery, device swaps). |
 | 6 | **Frictionless collection** | ✅ PASS | Weekly micro-debit from platform balance (₹15-₹75). Auto-deducted via Zomato/Swiggy payout API integration. Zero manual payment steps. |
@@ -1457,7 +1459,7 @@ Total time: 1 minute. Zero human intervention.
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Vercel Deployment | ✅ Live | `shift-safe-dt-frontend-livid.vercel.app` |
-| CRON Scheduler | ✅ Active | Every 30 min via `vercel.json` |
+| CRON Scheduler | ✅ Active | Daily at midnight UTC via `vercel.json` |
 | OTP Demo Mode | ✅ Working | Hardcoded `123456` fallback for hackathon |
 | SQLite Database | ✅ Active | Server-side persistent storage |
 | Open-Meteo Weather | ✅ Free | No API key required |
@@ -1466,6 +1468,7 @@ Total time: 1 minute. Zero human intervention.
 | Nominatim Geocoding | ✅ Free | Ward → GPS resolution |
 | Receipt Generator | ✅ Working | Client-side Canvas → PNG |
 | CSV Export | ✅ Working | Client + Server-side |
+| Aadhaar KYC | ✅ Working | UIDAI verification (simulated), DPDP-compliant masked storage |
 
 ### Environment Variables (Production)
 
@@ -1485,7 +1488,7 @@ OTP_DEMO_CODE=123456  (hardcoded fallback already present)
 
 ## 🔗 Phase 3 Deliverables & Submission Links
 
-- 🌐 **Live Deployed Platform:** [ShiftSafe-DT on Vercel](https://shift-safe-dt-frontend-livid.vercel.app/) _(Demo OTP: `123456`)_
+- 🌐 **Live Deployed Platform:** [ShiftSafe-DT on Vercel](https://shift-safe-dt-frontend-livid.vercel.app/) _(Demo OTP: `123456` · Demo Aadhaar: `123456789012` · Admin: `admin@shiftsafe.in / shiftsafe2026`)_
 - ▶️ **Demo Video:** [▶️ Watch Full System Demo](https://drive.google.com/file/d/1ix3dya3Z1Aokun7tx29lQGWj5WolgCzf/view?usp=drive_link)
 - 📊 **Pitch Presentation:** [View Hackathon Pitch Deck](https://docs.google.com/presentation/d/1eJckGP3-lfbzZO8o3h-LbPPiqFjLASzguZZHBeRzLW0/edit?usp=sharing)
 - 💻 **Source Code:** [GitHub - ShiftSafe-DT](https://github.com/anshika1179/ShiftSafe-DT)
