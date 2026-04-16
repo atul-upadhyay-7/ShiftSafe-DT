@@ -20,8 +20,11 @@ function requireInProduction(name: string): string {
 }
 
 export function getCronSecret(): string {
-  const configured = requireInProduction("CRON_SECRET");
-  return configured || `dev-cron-${devEntropy}`;
+  const configured = process.env.CRON_SECRET?.trim();
+  if (configured) return configured;
+
+  // Demo fallback — CRON endpoint accessible for hackathon testing
+  return "shiftsafe-demo-cron-secret-2026";
 }
 
 export function getAdminEmail(): string {
