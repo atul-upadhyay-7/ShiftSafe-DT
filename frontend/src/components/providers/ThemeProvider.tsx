@@ -18,9 +18,16 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
-export function useTheme() {
+export function useTheme(): ThemeContextType {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  if (!ctx) {
+    // SSR fallback — ThemeProvider hasn't mounted yet
+    return {
+      theme: "system",
+      resolvedTheme: "light",
+      setTheme: () => {},
+    };
+  }
   return ctx;
 }
 
