@@ -17,10 +17,7 @@ export default function LoginPage() {
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const isIndianPhoneValid = /^[6-9]\d{9}$/.test(phone);
 
-  const demoOtpEnabled =
-    process.env.NEXT_PUBLIC_SHOW_DEMO_OTP === "true" ||
-    process.env.NODE_ENV !== "production";
-  const demoOtpHint = process.env.NEXT_PUBLIC_DEMO_OTP_HINT || "123456";
+
 
   useEffect(() => {
     if (!isBootstrapping && isLoggedIn) {
@@ -183,13 +180,11 @@ export default function LoginPage() {
               ))}
             </div>
 
-            {demoOtpEnabled && (
-              <div className="text-center mb-3">
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-600">
-                  Demo OTP: <span className="font-mono">{demoOtpHint}</span>
-                </span>
-              </div>
-            )}
+            <div className="text-center mb-3">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-600">
+                💡 Demo OTP: <span className="font-mono font-bold tracking-widest">1 2 3 4 5 6</span>
+              </span>
+            </div>
 
             {error && (
               <div className="text-xs text-red-500 font-medium text-center mb-3">

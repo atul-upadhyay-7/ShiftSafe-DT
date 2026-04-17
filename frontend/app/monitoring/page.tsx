@@ -68,6 +68,8 @@ export default function MonitoringPage() {
   const [evidence, setEvidence] = useState<EvidenceState | null>(null);
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const gpsRequestRef = useRef(0);
+  const gpsCheckingRef = useRef(false);
+  const [mapZoom, setMapZoom] = useState(12);
   const [gpsState, setGpsState] = useState<GpsState>({
     status: "idle",
     message: "GPS check pending",
@@ -104,13 +106,16 @@ export default function MonitoringPage() {
       return;
     }
 
-    let shouldRun = false;
-    setGpsChecking((current) => {
-      if (current) return current;
-      shouldRun = true;
-      return true;
-    });
-    if (!shouldRun) return;
+    // Use ref for reliable concurrency check
+    if (gpsCheckingRef.current) return;
+    gpsCheckingRef.current = true;
+    setGpsChecking(true);
+
+    // Hard failsafe — ALWAYS reset after 20s no matter what
+    const failsafeTimer = setTimeout(() => {
+      gpsCheckingRef.current = false;
+      setGpsChecking(false);
+    }, 20000);
 
     const requestId = gpsRequestRef.current + 1;
     gpsRequestRef.current = requestId;
@@ -231,8 +236,10 @@ export default function MonitoringPage() {
       if (checkingWatchdog !== undefined) {
         window.clearTimeout(checkingWatchdog);
       }
+      clearTimeout(failsafeTimer);
 
       if (gpsRequestRef.current === requestId) {
+        gpsCheckingRef.current = false;
         setGpsChecking(false);
       }
     }

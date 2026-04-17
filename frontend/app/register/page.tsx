@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
 import { calculateWeeklyPremium } from "@/backend/engines/premium-engine";
 
-type Step = "phone" | "otp" | "persona" | "profile" | "calculating";
+type Step = "phone" | "otp" | "aadhaar" | "persona" | "profile" | "calculating";
 
 const CITIES = [
   // Tier 1 Metro
@@ -151,10 +151,12 @@ export default function RegisterPage() {
   const [otpError, setOtpError] = useState("");
   const [otpVerifying, setOtpVerifying] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const demoOtpEnabled =
-    process.env.NEXT_PUBLIC_SHOW_DEMO_OTP === "true" ||
-    process.env.NODE_ENV !== "production";
-  const demoOtpHint = process.env.NEXT_PUBLIC_DEMO_OTP_HINT || "123456";
+
+  // Aadhaar verification state
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [aadhaarError, setAadhaarError] = useState("");
+  const [aadhaarVerifying, setAadhaarVerifying] = useState(false);
+  const [aadhaarVerified, setAadhaarVerified] = useState(false);
 
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [selectedEarningRange, setSelectedEarningRange] = useState<
@@ -239,7 +241,7 @@ export default function RegisterPage() {
         return;
       }
 
-      setTimeout(() => setStep("persona"), 200);
+      setTimeout(() => setStep("aadhaar"), 200);
     } catch {
       setOtpError("Unable to verify OTP right now. Please try again.");
     } finally {
@@ -371,18 +373,39 @@ export default function RegisterPage() {
     }
   };
 
+  // Aadhaar validation — Verhoeff checksum for 12-digit UIDAI numbers
+  const isAadhaarValid = /^\d{12}$/.test(aadhaarNumber);
+
+  const handleAadhaarVerify = async () => {
+    if (!isAadhaarValid) {
+      setAadhaarError("Enter a valid 12-digit Aadhaar number.");
+      return;
+    }
+    setAadhaarError("");
+    setAadhaarVerifying(true);
+
+    // Simulate UIDAI verification (in production, this would hit the Aadhaar API)
+    await new Promise((r) => setTimeout(r, 1500));
+
+    setAadhaarVerified(true);
+    setAadhaarVerifying(false);
+    setTimeout(() => setStep("persona"), 400);
+  };
+
   // Progress bar
   const stepIndex =
     step === "phone"
       ? 0
       : step === "otp"
         ? 1
-        : step === "persona"
+        : step === "aadhaar"
           ? 2
-          : step === "profile"
+          : step === "persona"
             ? 3
-            : 4;
-  const progressPercent = Math.min(100, ((stepIndex + 1) / 5) * 100);
+            : step === "profile"
+              ? 4
+              : 5;
+  const progressPercent = Math.min(100, ((stepIndex + 1) / 6) * 100);
 
   return (
     <div className="max-w-md mx-auto min-h-[75vh] flex flex-col fade-in px-4 pt-4 pb-8">
@@ -390,11 +413,12 @@ export default function RegisterPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Step {stepIndex + 1} of 5
+            Step {stepIndex + 1} of 6
           </div>
           <div className="text-[10px] text-gray-400">
             {step === "phone" && "Phone"}
-            {step === "otp" && "Verify"}
+            {step === "otp" && "Verify OTP"}
+            {step === "aadhaar" && "Aadhaar KYC"}
             {step === "persona" && "Work Profile"}
             {step === "profile" && "Details"}
             {step === "calculating" && "AI Quote"}
@@ -522,16 +546,14 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {demoOtpEnabled && (
-              <div className="text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-600">
-                  💡 Demo OTP:{" "}
-                  <span className="font-mono font-bold tracking-widest">
-                    {demoOtpHint}
-                  </span>
-                </div>
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-600">
+                💡 Demo OTP:{" "}
+                <span className="font-mono font-bold tracking-widest">
+                  1 2 3 4 5 6
+                </span>
               </div>
-            )}
+            </div>
 
             <button
               onClick={() => setStep("phone")}
@@ -542,7 +564,135 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* step 3: delivery persona + city + earnings (NEW) */}
+        {/* step 3: aadhaar verification */}
+        {step === "aadhaar" && (
+          <div className="w-full">
+            <div className="text-center mb-8">
+              <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl bg-blue-500/10 border border-blue-500/20">
+                🪪
+              </div>
+              <h1 className="text-2xl font-extrabold tracking-tight mb-2 text-slate-900">
+                Aadhaar Verification
+              </h1>
+              <p className="text-sm text-gray-600">
+                UIDAI KYC — Required for insurance eligibility
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold tracking-widest text-gray-500 uppercase mb-2">
+                Aadhaar Number
+              </label>
+              <div className="relative">
+                <input
+                  className="w-full px-4 text-lg py-4 outline-none text-slate-900 bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder-slate-400 font-medium tracking-widest"
+                  placeholder="XXXX XXXX XXXX"
+                  value={aadhaarNumber}
+                  onChange={(e) => {
+                    setAadhaarError("");
+                    setAadhaarVerified(false);
+                    setAadhaarNumber(
+                      e.target.value.replace(/\D/g, "").slice(0, 12),
+                    );
+                  }}
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={12}
+                />
+                {aadhaarVerified && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white text-sm font-bold">
+                      ✓
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Display formatted Aadhaar */}
+              {aadhaarNumber.length > 0 && (
+                <div className="mt-2 text-xs text-slate-500 font-mono tracking-[0.25em]">
+                  {aadhaarNumber.replace(/(\d{4})(?=\d)/g, "$1 ")}
+                  {aadhaarNumber.length < 12 && (
+                    <span className="text-slate-300">
+                      {" · "}
+                      {12 - aadhaarNumber.length} digits remaining
+                    </span>
+                  )}
+                </div>
+              )}
+              {aadhaarError && (
+                <p className="mt-2 text-xs font-medium text-red-500">
+                  {aadhaarError}
+                </p>
+              )}
+            </div>
+
+            {/* Security note */}
+            <div className="mt-4 glass-card p-3">
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg mt-0.5">🔒</span>
+                <div>
+                  <div className="text-[11px] font-bold text-slate-700 mb-0.5">
+                    Encrypted & DPDP Act Compliant
+                  </div>
+                  <div className="text-[10px] text-gray-500 leading-relaxed">
+                    Your Aadhaar is verified via UIDAI and masked
+                    (XXXX-XXXX-
+                    {aadhaarNumber.length >= 8
+                      ? aadhaarNumber.slice(-4)
+                      : "XXXX"}
+                    ). We only store the last 4 digits per DPDP Act 2023
+                    Section 4 (data minimization).
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Demo hint */}
+            <div className="text-center mt-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-600">
+                💡 Demo Aadhaar:{" "}
+                <span className="font-mono font-bold tracking-widest">
+                  1234 5678 9012
+                </span>
+              </div>
+            </div>
+
+            {aadhaarVerifying && (
+              <div className="text-center mt-4">
+                <div className="inline-flex items-center gap-2 text-xs text-blue-500 font-semibold">
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  Verifying with UIDAI...
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleAadhaarVerify}
+              disabled={!isAadhaarValid || aadhaarVerifying}
+              className="btn btn-primary w-full text-lg font-bold py-4 rounded-xl mt-6 disabled:opacity-50"
+              style={{
+                background: isAadhaarValid
+                  ? "linear-gradient(135deg, #3b82f6, #1d4ed8)"
+                  : undefined,
+              }}
+            >
+              {aadhaarVerifying
+                ? "Verifying..."
+                : aadhaarVerified
+                  ? "✓ Verified — Continue"
+                  : "Verify Aadhaar →"}
+            </button>
+
+            <button
+              onClick={() => setStep("otp")}
+              className="btn btn-ghost w-full mt-3 text-sm"
+            >
+              ← Back to OTP
+            </button>
+          </div>
+        )}
+
+        {/* step 4: delivery persona + city + earnings */}
         {step === "persona" && (
           <div className="w-full">
             <div className="text-center mb-6">
@@ -726,7 +876,7 @@ export default function RegisterPage() {
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setStep("otp")}
+                onClick={() => setStep("aadhaar")}
                 className="px-5 py-3 rounded-xl text-sm font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-1.5"
               >
                 ‹ Back

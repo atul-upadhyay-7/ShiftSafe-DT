@@ -20,24 +20,35 @@ function requireInProduction(name: string): string {
 }
 
 export function getCronSecret(): string {
-  const configured = requireInProduction("CRON_SECRET");
-  return configured || `dev-cron-${devEntropy}`;
+  const configured = process.env.CRON_SECRET?.trim();
+  if (configured) return configured;
+
+  // Demo fallback — CRON endpoint accessible for hackathon testing
+  return "shiftsafe-demo-cron-secret-2026";
 }
 
 export function getAdminEmail(): string {
-  const configured = requireInProduction("ADMIN_EMAIL");
-  return (configured || "admin@localhost").toLowerCase();
+  const configured = process.env.ADMIN_EMAIL?.trim();
+  if (configured) return configured.toLowerCase();
+
+  // Demo fallback — admin panel always accessible for hackathon judges
+  return "admin@shiftsafe.in";
 }
 
 export function getAdminPasswordHash(): string {
-  const configured = requireInProduction("ADMIN_PASSWORD_HASH");
-  const devPassword = process.env.ADMIN_DEV_PASSWORD || "local-dev-admin";
-  return configured || sha256(devPassword);
+  const configured = process.env.ADMIN_PASSWORD_HASH?.trim();
+  if (configured) return configured;
+
+  const devPassword = process.env.ADMIN_DEV_PASSWORD || "shiftsafe2026";
+  return sha256(devPassword);
 }
 
 export function getAdminSessionSecret(): string {
-  const configured = requireInProduction("ADMIN_SESSION_SECRET");
-  return configured || `dev-admin-session-${devEntropy}`;
+  const configured = process.env.ADMIN_SESSION_SECRET?.trim();
+  if (configured) return configured;
+
+  // Demo fallback — deterministic secret for hackathon (not random per deploy)
+  return "shiftsafe-demo-admin-session-secret-2026";
 }
 
 export function getWorkerSessionSecret(): string {
@@ -47,9 +58,17 @@ export function getWorkerSessionSecret(): string {
   const legacySharedSecret = process.env.ADMIN_SESSION_SECRET?.trim();
   if (legacySharedSecret) return legacySharedSecret;
 
+  // As a safety net, derive a deterministic secret from existing protected envs
+  // so worker onboarding doesn't hard-fail when WORKER_SESSION_SECRET is missing.
+  const derivedSource =
+    process.env.ADMIN_PASSWORD_HASH?.trim() || process.env.CRON_SECRET?.trim();
+  if (derivedSource) {
+    return `derived-worker-session-${sha256(derivedSource).slice(0, 48)}`;
+  }
+
   if (isProduction) {
-    throw new Error(
-      "WORKER_SESSION_SECRET is required in production (or configure ADMIN_SESSION_SECRET as a temporary fallback)",
+    console.warn(
+      "WORKER_SESSION_SECRET is missing in production; falling back to process-local emergency secret",
     );
   }
 
