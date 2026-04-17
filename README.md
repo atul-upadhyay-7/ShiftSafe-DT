@@ -1489,7 +1489,7 @@ OTP_DEMO_CODE=123456  (hardcoded fallback already present)
 ## 🔗 Phase 3 Deliverables & Submission Links
 
 - 🌐 **Live Deployed Platform:** [ShiftSafe-DT on Vercel](https://shift-safe-dt-frontend-livid.vercel.app/) _(Demo OTP: `123456` · Demo Aadhaar: `123456789012` · Admin: `admin@shiftsafe.in / shiftsafe2026`)_
-- ▶️ **Demo Video:** [▶️ Watch Full System Demo](https://drive.google.com/file/d/1ix3dya3Z1Aokun7tx29lQGWj5WolgCzf/view?usp=drive_link)
+- ▶️ **Demo Video:** [▶️ Watch Phase 3 System Demo](https://youtu.be/F5tqQBt9lAA)
 - 📊 **Pitch Desk:** [View Hackathon Pitch Desk](https://docs.google.com/presentation/d/1b3ywK7FqvXFufm4TVfnahZQhwd9CpeeMIPStEJhDAfw/edit?usp=sharing)
 - 🎬 **Pitch Video:** [Watch Pitch Video](https://youtu.be/EkIxbAylMlI?si=k3dAWrvtoWwRxlT8)
 - 💻 **Source Code:** [GitHub - ShiftSafe-DT](https://github.com/anshika1179/ShiftSafe-DT)
