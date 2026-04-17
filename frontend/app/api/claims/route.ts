@@ -333,41 +333,77 @@ export async function POST(req: NextRequest) {
       let payoutStatus = "completed";
       let channel = "Razorpay Payouts";
 
-      const rzpKeyId = process.env.RAZORPAY_KEY_ID || "rzp_test_demo_key";
-      const rzpSecret = process.env.RAZORPAY_KEY_SECRET || "rzp_test_demo_secret";
+      const rzpKeyId = process.env.RAZORPAY_KEY_ID || "";
+      const rzpSecret = process.env.RAZORPAY_KEY_SECRET || "";
 
-      if (rzpKeyId !== "rzp_test_demo_key") {
+      if (rzpKeyId && rzpSecret && !rzpKeyId.includes("demo")) {
         try {
           const auth = Buffer.from(`${rzpKeyId}:${rzpSecret}`).toString("base64");
-          // Fake fund account or use a real stored one. For demo, we just call the sandbox payouts API.
-          // In a real environment, you'd create a contact -> fund_account -> payout.
-          // Assuming user wants "real things", we attempt a payout to a dummy fund account provided by Razorpay test mode.
-          const rzpRes = await fetch("https://api.razorpay.com/v1/payouts", {
+          const headers = {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${auth}`,
+          };
+
+          // Step 1: Create a Razorpay Contact (represents the worker)
+          const contactRes = await fetch("https://api.razorpay.com/v1/contacts", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Basic ${auth}`,
-              "X-Payout-Idempotency": claimId,
-            },
+            headers,
             body: JSON.stringify({
-              account_number: "7878780080316316", // Generic standard Razorpay testing account
-              fund_account_id: "fa_demo_account",   // Generic test fund account
-              amount: Math.round(amount * 100), // In paise
-              currency: "INR",
-              mode: "UPI",
-              purpose: "payout",
-              reference_id: claimId,
-              narration: "ShiftSafe Claim Payout",
+              name: `Worker-${sanitizedWorkerId.slice(0, 8)}`,
+              type: "employee",
+              reference_id: sanitizedWorkerId,
             }),
           });
           
-          if (rzpRes.ok) {
-            const data = await rzpRes.json();
-            txnRef = data.id;
-            payoutStatus = data.status || "processing";
+          if (contactRes.ok) {
+            const contact = await contactRes.json();
+            
+            // Step 2: Create a Fund Account (test UPI)
+            const faRes = await fetch("https://api.razorpay.com/v1/fund_accounts", {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                contact_id: contact.id,
+                account_type: "vpa",
+                vpa: {
+                  address: "success@razorpay", // Razorpay test VPA — always succeeds
+                },
+              }),
+            });
+
+            if (faRes.ok) {
+              const fundAccount = await faRes.json();
+
+              // Step 3: Create Payout
+              const payoutRes = await fetch("https://api.razorpay.com/v1/payouts", {
+                method: "POST",
+                headers: {
+                  ...headers,
+                  "X-Payout-Idempotency": claimId,
+                },
+                body: JSON.stringify({
+                  account_number: process.env.RAZORPAY_ACCOUNT_NUMBER || "7878780080316316",
+                  fund_account_id: fundAccount.id,
+                  amount: Math.round(amount * 100), // In paise
+                  currency: "INR",
+                  mode: "UPI",
+                  purpose: "payout",
+                  reference_id: claimId,
+                  narration: `ShiftSafe Claim Payout ₹${amount}`,
+                }),
+              });
+              
+              if (payoutRes.ok) {
+                const payoutData = await payoutRes.json();
+                txnRef = payoutData.id || txnRef;
+                payoutStatus = payoutData.status || "processing";
+                channel = "Razorpay UPI Payout";
+              }
+            }
           }
-        } catch {
-          // Fall back to sandbox format if call fails
+        } catch (rzpErr) {
+          console.warn("Razorpay payout attempt failed (sandbox fallback):", rzpErr);
+          // Graceful fallback — claim is still approved, just paid via sandbox reference
         }
       }
 

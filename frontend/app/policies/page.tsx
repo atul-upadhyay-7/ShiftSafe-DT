@@ -443,13 +443,14 @@ export default function PoliciesPage() {
             <div className="flex-1">
               <div className="text-sm font-bold text-slate-900">Pay Weekly Premium</div>
               <div className="text-[11px] text-gray-500">
-                Razorpay Test Mode · UPI / Card / Net Banking
+                Razorpay Secure Checkout · UPI / Card / Net Banking
               </div>
             </div>
             <button
               onClick={async () => {
                 setPolicyActionLoading(true);
                 try {
+                  // Step 1: Create Razorpay order via backend
                   const res = await fetch("/api/razorpay/order", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -457,35 +458,80 @@ export default function PoliciesPage() {
                       amount: weeklyPremium,
                       workerId: worker?.id,
                       policyId: policy?.id,
-                      type: "weekly_premium",
+                      description: `ShiftSafe Weekly Premium — ${worker?.name || "Worker"}`,
                     }),
                   });
                   const data = await res.json();
-                  if (data.success) {
-                    // Simulate successful payment in sandbox mode
-                    setPaymentHistory((prev) => [
-                      {
-                        id: createLocalPaymentId(),
-                        date: new Date().toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        }),
-                        amount: weeklyPremium,
-                        status: "Paid",
-                        receipt: `razorpay-${data.order?.id || "demo"}.pdf`,
-                      },
-                      ...prev,
-                    ]);
-                    triggerToast(
-                      `₹${weeklyPremium} premium paid via ${data.mode === "live" ? "Razorpay" : "Sandbox"}! Order: ${data.order?.id}`,
-                      "success"
-                    );
-                  } else {
-                    triggerToast("Payment order creation failed", "error");
+                  if (!data.success || !data.orderId) {
+                    triggerToast(data.error || "Unable to create payment order.", "error");
+                    setPolicyActionLoading(false);
+                    return;
                   }
-                } catch {
-                  triggerToast("Unable to process payment right now", "error");
+
+                  // Step 2: Load Razorpay Checkout script if not already loaded
+                  if (!(window as any).Razorpay) {
+                    await new Promise<void>((resolve, reject) => {
+                      const script = document.createElement("script");
+                      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+                      script.onload = () => resolve();
+                      script.onerror = () => reject(new Error("Failed to load Razorpay SDK"));
+                      document.head.appendChild(script);
+                    });
+                  }
+
+                  // Step 3: Open Razorpay Checkout modal
+                  const options = {
+                    key: data.keyId,
+                    amount: data.amount * 100,
+                    currency: data.currency || "INR",
+                    name: "ShiftSafe Insurance",
+                    description: data.description || `Weekly Premium ₹${weeklyPremium}`,
+                    order_id: data.orderId,
+                    prefill: {
+                      name: worker?.name || "",
+                      contact: worker?.phone || "",
+                    },
+                    theme: {
+                      color: "#6d28d9",
+                    },
+                    handler: function (response: any) {
+                      // Payment successful!
+                      setPaymentHistory((prev) => [
+                        {
+                          id: response.razorpay_payment_id || createLocalPaymentId(),
+                          date: new Date().toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }),
+                          amount: weeklyPremium,
+                          status: "Paid",
+                          receipt: `rzp-${response.razorpay_payment_id || "paid"}`,
+                        },
+                        ...prev,
+                      ]);
+                      triggerToast(
+                        `₹${weeklyPremium} premium paid successfully! Payment ID: ${response.razorpay_payment_id}`,
+                        "success"
+                      );
+                    },
+                    modal: {
+                      ondismiss: function () {
+                        triggerToast("Payment cancelled by user.", "error");
+                      },
+                    },
+                  };
+
+                  const rzp = new (window as any).Razorpay(options);
+                  rzp.on("payment.failed", function (response: any) {
+                    triggerToast(
+                      `Payment failed: ${response.error?.description || "Unknown error"}`,
+                      "error"
+                    );
+                  });
+                  rzp.open();
+                } catch (err) {
+                  triggerToast("Unable to process payment right now. Please try again.", "error");
                 } finally {
                   setPolicyActionLoading(false);
                 }
@@ -497,7 +543,7 @@ export default function PoliciesPage() {
               {policyActionLoading ? "Processing..." : `Pay ₹${weeklyPremium}`}
             </button>
           </div>
-          <div className="mt-2.5 flex items-center gap-3 text-[9px] text-gray-400">
+          <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[9px] text-gray-400">
             <span className="flex items-center gap-1">🔒 PCI-DSS Compliant</span>
             <span>•</span>
             <span>Test Card: 4111 1111 1111 1111</span>

@@ -817,7 +817,7 @@ export default function AdminDashboard() {
         : "bg-slate-100 text-slate-600";
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto fade-in pb-8 px-4 sm:px-6">
+    <div className="space-y-4 max-w-6xl mx-auto fade-in pb-8 px-3 sm:px-6 overflow-x-hidden">
       {/* Header */}
       <div className="glass-card p-4 sm:p-5 mt-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1204,7 +1204,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {/* Isolation Forest Model */}
               <div className="rounded-xl border border-purple-200 bg-white/80 p-3.5">
                 <div className="flex items-center gap-2 mb-2">
@@ -1228,7 +1228,7 @@ export default function AdminDashboard() {
                   <div className="flex justify-between">
                     <span className="text-slate-500">Feature Inputs</span>
                     <span className="font-semibold text-slate-800">
-                      8-dimensional vector
+                      15-dimensional vector
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1330,19 +1330,26 @@ export default function AdminDashboard() {
                       📊
                     </span>
                     <span className="text-[11px] font-bold text-blue-800">
-                      Feature Importance (8D)
+                      Feature Importance (15D)
                     </span>
                   </div>
                   <div className="space-y-1">
                     {[
-                      { name: "GPS Distance", weight: 22, color: "#8b5cf6" },
-                      { name: "Amount Ratio", weight: 18, color: "#f59e0b" },
-                      { name: "Speed Anomaly", weight: 13, color: "#ef4444" },
-                      { name: "Claim Freq.", weight: 12, color: "#3b82f6" },
-                      { name: "GPS Accuracy", weight: 10, color: "#10b981" },
-                      { name: "Duplicate Flag", weight: 10, color: "#6366f1" },
-                      { name: "Policy Status", weight: 8, color: "#ec4899" },
-                      { name: "Time Bucket", weight: 7, color: "#14b8a6" },
+                      { name: "GPS Distance", weight: 15, color: "#8b5cf6" },
+                      { name: "Amount Ratio", weight: 12, color: "#f59e0b" },
+                      { name: "Claim Freq.", weight: 10, color: "#3b82f6" },
+                      { name: "Multi-Login", weight: 8, color: "#ef4444" },
+                      { name: "GPS Accuracy", weight: 8, color: "#10b981" },
+                      { name: "Speed Check", weight: 8, color: "#6366f1" },
+                      { name: "Duplicate", weight: 7, color: "#ec4899" },
+                      { name: "Policy", weight: 7, color: "#14b8a6" },
+                      { name: "Device Swap", weight: 5, color: "#a855f7" },
+                      { name: "Hour Bucket", weight: 5, color: "#0ea5e9" },
+                      { name: "Integrity", weight: 4, color: "#d946ef" },
+                      { name: "Bank Match", weight: 3, color: "#f43f5e" },
+                      { name: "Time Gap", weight: 3, color: "#84cc16" },
+                      { name: "Battery", weight: 3, color: "#64748b" },
+                      { name: "Altitude", weight: 2, color: "#06b6d4" },
                     ].map((f) => (
                       <div
                         key={f.name}
@@ -1427,7 +1434,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="mt-3 grid sm:grid-cols-2 gap-3">
+            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
               <div className="rounded-xl border border-slate-200 bg-white/80 p-3.5">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                   ML Usage Last 30 Days
@@ -1513,7 +1520,7 @@ export default function AdminDashboard() {
 
           {/* City Pools & Premium Tiers */}
           {(metrics?.cityPools || metrics?.premiumTiers) && (
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {metrics?.cityPools && metrics.cityPools.length > 0 && (
                 <div className="glass-card p-4">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600 mb-3">
@@ -1576,7 +1583,7 @@ export default function AdminDashboard() {
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600 mb-3">
               ⚙️ Workflow Guardrails
             </h3>
-            <div className="grid sm:grid-cols-4 gap-2 text-[11px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
               {[
                 {
                   step: "1",
@@ -1857,7 +1864,7 @@ export default function AdminDashboard() {
       {/* ═══ TAB: SERVICE REQUESTS ═══ */}
       {tab === "service_requests" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {[
               {
                 label: "Open",
@@ -1902,7 +1909,7 @@ export default function AdminDashboard() {
               <h2 className="text-sm font-bold uppercase tracking-widest text-slate-600">
                 🎫 Service Requests
               </h2>
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
                 {(["all", "open", "in_progress", "resolved"] as SRFilter[]).map(
                   (f) => (
                     <button
@@ -2070,7 +2077,7 @@ export default function AdminDashboard() {
       {tab === "bonuses" && (
         <div className="space-y-4">
           {/* Summary */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="border rounded-xl p-3 text-center bg-emerald-50 text-emerald-700 border-emerald-200">
               <div className="text-lg font-black">
                 ₹{bonusSummary.totalPaid.toLocaleString()}

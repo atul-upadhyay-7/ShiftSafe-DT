@@ -1,107 +1,120 @@
-// POST /api/razorpay/order — Create a Razorpay test order for premium payment
-// This is a SANDBOX-ONLY implementation for hackathon demo
+// POST /api/razorpay/order — Create a Razorpay order for premium payment
 import { NextRequest, NextResponse } from "next/server";
+import { getDb } from "@/backend/models/db";
 import {
   consumeRateLimit,
   getClientIp,
   retryAfterSeconds,
 } from "@/lib/server/rate-limit";
 
-// Razorpay Test Mode keys (sandbox)
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || "rzp_test_demo_key";
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "rzp_test_demo_secret";
-
-interface RazorpayOrder {
-  id: string;
-  amount: number;
-  currency: string;
-  status: string;
-  receipt: string;
-  created_at: number;
-}
-
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIp(req);
-    const rate = consumeRateLimit(`razorpay:${ip}`, 20, 10 * 60 * 1000);
+    const rate = consumeRateLimit(`rzp_order:${ip}`, 20, 10 * 60 * 1000);
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: "Rate limit exceeded", retryAfterSeconds: retryAfterSeconds(rate.resetAt) },
+        {
+          error: "Too many requests. Please try again later.",
+          retryAfterSeconds: retryAfterSeconds(rate.resetAt),
+        },
         { status: 429 },
       );
     }
 
     const body = await req.json();
-    const amount = Math.max(100, Math.min(50000, Number(body?.amount || 0))); // Amount in paise
-    const currency = "INR";
-    const receipt = `rcpt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const notes = {
-      workerId: String(body?.workerId || "demo"),
-      policyId: String(body?.policyId || "demo"),
-      type: String(body?.type || "weekly_premium"),
-    };
+    const { workerId, policyId, amount, description } = body;
 
-    // Try real Razorpay API first
-    if (RAZORPAY_KEY_ID !== "rzp_test_demo_key" && RAZORPAY_KEY_SECRET !== "rzp_test_demo_secret") {
-      try {
-        const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
-        const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${auth}`,
-          },
-          body: JSON.stringify({
-            amount: amount * 100, // Razorpay expects paise
-            currency,
-            receipt,
-            notes,
-          }),
-        });
+    const sanitizedWorkerId = String(workerId || "").trim();
+    const sanitizedPolicyId = String(policyId || "").trim();
+    const safeAmount = Math.max(1, Math.min(50000, Number(amount) || 35));
+    const safeDescription = String(description || "Weekly Premium Payment")
+      .trim()
+      .slice(0, 200);
 
-        if (rzpRes.ok) {
-          const order = (await rzpRes.json()) as RazorpayOrder;
-          return NextResponse.json({
-            success: true,
-            mode: "live",
-            order: {
-              id: order.id,
-              amount: order.amount / 100,
-              currency: order.currency,
-              receipt,
-            },
-            razorpayKeyId: RAZORPAY_KEY_ID,
-          });
-        }
-      } catch {
-        // Fall through to sandbox mode
-      }
+    if (!sanitizedWorkerId) {
+      return NextResponse.json(
+        { error: "workerId is required" },
+        { status: 400 },
+      );
     }
 
-    // Sandbox/Demo mode — simulate order creation
-    const sandboxOrderId = `order_demo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const rzpKeyId = process.env.RAZORPAY_KEY_ID;
+    const rzpSecret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!rzpKeyId || !rzpSecret) {
+      return NextResponse.json(
+        { error: "Payment gateway not configured. Contact admin." },
+        { status: 503 },
+      );
+    }
+
+    // Create a Razorpay Order via their Orders API
+    const auth = Buffer.from(`${rzpKeyId}:${rzpSecret}`).toString("base64");
+    const orderRes = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${auth}`,
+      },
+      body: JSON.stringify({
+        amount: Math.round(safeAmount * 100), // Razorpay expects paise
+        currency: "INR",
+        receipt: `prem_${sanitizedWorkerId.slice(0, 8)}_${Date.now()}`,
+        notes: {
+          workerId: sanitizedWorkerId,
+          policyId: sanitizedPolicyId,
+          type: "weekly_premium",
+          description: safeDescription,
+        },
+      }),
+    });
+
+    if (!orderRes.ok) {
+      const errBody = await orderRes.text();
+      console.error("Razorpay order creation failed:", errBody);
+      return NextResponse.json(
+        {
+          error: "Unable to create payment order. Please try again.",
+          details: process.env.NODE_ENV === "development" ? errBody : undefined,
+        },
+        { status: 502 },
+      );
+    }
+
+    const orderData = await orderRes.json();
+
+    // Record the payment attempt in the database
+    const db = getDb();
+    try {
+      await db
+        .prepare(
+          `INSERT INTO premium_payments (id, worker_id, policy_id, razorpay_order_id, amount, status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+        )
+        .run(
+          crypto.randomUUID(),
+          sanitizedWorkerId,
+          sanitizedPolicyId,
+          orderData.id,
+          safeAmount,
+          "created",
+        );
+    } catch {
+      // Table may not exist yet — best effort
+    }
 
     return NextResponse.json({
       success: true,
-      mode: "sandbox",
-      order: {
-        id: sandboxOrderId,
-        amount,
-        currency,
-        receipt,
-        status: "created",
-      },
-      razorpayKeyId: RAZORPAY_KEY_ID === "rzp_test_demo_key" ? "rzp_test_ShiftSafe" : RAZORPAY_KEY_ID,
-      notes,
-      message: "🧪 Sandbox mode — no real charges. Use test cards for demo.",
-      testCards: {
-        success: "4111 1111 1111 1111",
-        upi: "success@razorpay",
-      },
+      orderId: orderData.id,
+      amount: safeAmount,
+      currency: "INR",
+      keyId: rzpKeyId, // Frontend needs this to initialize Checkout
+      description: safeDescription,
     });
-  } catch {
+  } catch (err) {
+    console.error("Razorpay order error:", err);
     return NextResponse.json(
-      { error: "Unable to create payment order" },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }
