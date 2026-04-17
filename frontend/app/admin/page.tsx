@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { downloadClaimsCSV } from "@/lib/receipt-generator";
 
 /* ─── Type Definitions ─── */
 type AdminTab =
@@ -1645,6 +1646,14 @@ export default function AdminDashboard() {
                   </button>
                 ),
               )}
+              <div className="w-[1px] h-6 bg-slate-200 mx-1 shrink-0"></div>
+              <button
+                onClick={() => downloadClaimsCSV(filteredClaims, "All Workers")}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[11px] font-bold uppercase whitespace-nowrap hover:bg-blue-100 transition-colors"
+                title="Download as CSV"
+              >
+                <span>⬇️</span> Export CSV
+              </button>
             </div>
           </div>
 
