@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
 import { triggerToast } from "@/frontend/components/ui/Notifications";
+import { safeReplace } from "@/lib/client/navigation";
 
 const CATEGORIES = [
   {
@@ -151,7 +152,7 @@ export default function ServiceRequestsPage() {
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
-    if (!isBootstrapping && !isLoggedIn) router.replace("/");
+    if (!isBootstrapping && !isLoggedIn) safeReplace(router, "/");
   }, [isBootstrapping, isLoggedIn, router]);
 
   const loadRequests = useCallback(async () => {

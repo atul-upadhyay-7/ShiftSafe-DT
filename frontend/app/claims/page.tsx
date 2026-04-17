@@ -9,6 +9,7 @@ import {
 import { getTriggerEmoji, getTriggerName } from "@/backend/utils/store";
 import { downloadReceipt, downloadClaimsCSV } from "@/lib/receipt-generator";
 import FraudExplainer from "@/frontend/components/ui/FraudExplainer";
+import { safeReplace } from "@/lib/client/navigation";
 
 const SIMULATOR_BUTTONS = [
   {
@@ -92,7 +93,7 @@ export default function ClaimsPage() {
   const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isBootstrapping && !isLoggedIn) router.replace("/");
+    if (!isBootstrapping && !isLoggedIn) safeReplace(router, "/");
   }, [isBootstrapping, isLoggedIn, router]);
 
   if (isBootstrapping) {

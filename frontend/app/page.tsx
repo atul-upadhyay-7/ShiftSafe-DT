@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
+import { safePush } from "@/lib/client/navigation";
 
 const FEATURES = [
   {
@@ -159,7 +160,7 @@ export default function SplashPage() {
         <div className="space-y-3 mb-8">
           {isLoggedIn ? (
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => safePush(router, "/dashboard")}
               className="w-full py-4 rounded-xl text-lg font-bold bg-primary-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.4)] hover:bg-primary-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
             >
               Go to Dashboard
@@ -168,14 +169,14 @@ export default function SplashPage() {
           ) : (
             <>
               <button
-                onClick={() => router.push("/register")}
+                onClick={() => safePush(router, "/register")}
                 className="w-full py-4 rounded-xl text-lg font-bold bg-primary-500 text-white shadow-[0_8px_24px_rgba(249,115,22,0.4)] hover:bg-primary-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
               >
                 Get Protected Now
                 <span className="group-hover:translate-x-1 transition-transform">→</span>
               </button>
               <button
-                onClick={() => router.push("/login")}
+                onClick={() => safePush(router, "/login")}
                 className="w-full py-3.5 rounded-xl text-base font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
                 🔐 Login with OTP
@@ -183,7 +184,7 @@ export default function SplashPage() {
             </>
           )}
           <button
-            onClick={() => router.push("/admin")}
+            onClick={() => safePush(router, "/admin")}
             className="w-full py-3 rounded-xl text-sm font-bold text-slate-400 border border-slate-700/60 bg-slate-800/40 hover:bg-slate-800 hover:text-white hover:border-purple-500/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
           >
             <span className="w-5 h-5 rounded-md bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-[10px]">

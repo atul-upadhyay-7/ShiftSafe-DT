@@ -7,6 +7,7 @@ import {
   triggerToast,
 } from "@/frontend/components/ui/Notifications";
 import { getTriggerEmoji } from "@/backend/utils/store";
+import { safeReplace } from "@/lib/client/navigation";
 
 let localClaimSequence = 0;
 
@@ -146,7 +147,7 @@ export default function MonitoringPage() {
   const [lastRefresh, setLastRefresh] = useState<string>("");
 
   useEffect(() => {
-    if (!isBootstrapping && !isLoggedIn) router.replace("/");
+    if (!isBootstrapping && !isLoggedIn) safeReplace(router, "/");
   }, [isBootstrapping, isLoggedIn, router]);
 
   // ── Fetch live weather & AQI ──

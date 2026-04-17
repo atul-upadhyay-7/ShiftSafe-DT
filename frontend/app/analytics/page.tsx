@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
+import { safeReplace } from "@/lib/client/navigation";
 
 // Dynamic import for Chart.js (client-side only)
 interface ChartInstance {
@@ -259,7 +260,7 @@ export default function AnalyticsPage() {
   }, [tab, simResult, simLoading, mlHealth, mlLoading]);
 
   useEffect(() => {
-    if (!isBootstrapping && !isLoggedIn) router.replace("/");
+    if (!isBootstrapping && !isLoggedIn) safeReplace(router, "/");
   }, [isBootstrapping, isLoggedIn, router]);
 
   // Fetch actuarial data when switching to actuarial/stress tab

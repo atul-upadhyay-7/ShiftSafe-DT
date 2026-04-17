@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
+import { safePush, safeReplace } from "@/lib/client/navigation";
 
 type LoginStep = "phone" | "otp";
 
@@ -21,7 +22,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isBootstrapping && isLoggedIn) {
-      router.replace("/dashboard");
+      safeReplace(router, "/dashboard");
     }
   }, [isBootstrapping, isLoggedIn, router]);
 
@@ -67,7 +68,7 @@ export default function LoginPage() {
       }
 
       await refreshSession();
-      router.push("/dashboard");
+      safePush(router, "/dashboard");
     } catch {
       setError("Unable to sign in right now. Please try again.");
     } finally {
@@ -215,7 +216,7 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => router.push("/register")}
+            onClick={() => safePush(router, "/register")}
             className="text-sm text-primary-500 font-bold hover:underline"
           >
             New user? Get started here

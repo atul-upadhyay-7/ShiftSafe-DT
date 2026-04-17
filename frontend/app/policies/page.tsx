@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
 import { triggerToast } from "@/frontend/components/ui/Notifications";
+import { safeReplace } from "@/lib/client/navigation";
 
 const COVERAGE_TRIGGERS = [
   {
@@ -94,7 +95,7 @@ export default function PoliciesPage() {
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!isBootstrapping && !isLoggedIn) router.replace("/");
+    if (!isBootstrapping && !isLoggedIn) safeReplace(router, "/");
   }, [isBootstrapping, isLoggedIn, router]);
 
   useEffect(() => {

@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 export default function NotFound() {
   return (
     <div className="min-h-[75vh] flex flex-col items-center justify-center text-center px-4">
@@ -10,18 +8,18 @@ export default function NotFound() {
         make sure you&apos;re registered first.
       </p>
       <div className="flex gap-3">
-        <Link
+        <a
           href="/"
           className="btn btn-primary px-6 py-3 rounded-xl text-sm font-bold"
         >
           Go Home
-        </Link>
-        <Link
+        </a>
+        <a
           href="/register"
           className="btn px-6 py-3 rounded-xl text-sm font-bold border border-gray-200 text-gray-700 hover:bg-gray-50"
         >
           Register
-        </Link>
+        </a>
       </div>
     </div>
   );

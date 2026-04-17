@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
 import { calculateWeeklyPremium } from "@/backend/engines/premium-engine";
+import { safePush } from "@/lib/client/navigation";
 
 type Step = "phone" | "otp" | "aadhaar" | "persona" | "profile" | "calculating";
 
@@ -430,7 +431,7 @@ export default function RegisterPage() {
       }
 
       await refreshSession();
-      router.push("/dashboard");
+      safePush(router, "/dashboard");
     } catch {
       setSubmitError("Unable to complete registration right now.");
       setStep("profile");

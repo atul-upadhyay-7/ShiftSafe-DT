@@ -12,6 +12,7 @@ import {
   getTriggerEmoji,
   getTriggerName,
 } from "@/backend/utils/store";
+import { safePush, safeReplace } from "@/lib/client/navigation";
 
 const TRIGGERS = [
   {
@@ -140,7 +141,7 @@ export default function DashboardPage() {
 
   // redirect if not logged in
   useEffect(() => {
-    if (!isBootstrapping && !isLoggedIn) router.replace("/");
+    if (!isBootstrapping && !isLoggedIn) safeReplace(router, "/");
     // fetch historical weather recommendations
     const qs = worker?.id ? `?workerId=${encodeURIComponent(worker.id)}` : "";
     fetch(`/api/dashboard${qs}`)
@@ -567,7 +568,7 @@ export default function DashboardPage() {
             50% max payout cap · {worker?.city || "Mumbai"} city tier applied
           </div>
           <button
-            onClick={() => router.push("/policies")}
+            onClick={() => safePush(router, "/policies")}
             className="text-[10px] text-primary-500 font-bold hover:underline"
           >
             View Full Policy →
@@ -635,7 +636,7 @@ export default function DashboardPage() {
 
       {/* actuarial command center banner */}
       <button
-        onClick={() => router.push("/actuarial")}
+        onClick={() => safePush(router, "/actuarial")}
         className="w-full glass-card p-4 flex items-center gap-4 group hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] text-left"
         style={{
           background:

@@ -1,6 +1,5 @@
 "use client";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAppState } from "@/frontend/components/providers/AppProvider";
 import { useTheme } from "@/frontend/components/providers/ThemeProvider";
@@ -28,7 +27,7 @@ export function BottomNav() {
         {links.map((l) => {
           const active = pathname === l.href;
           return (
-            <Link
+            <a
               key={l.href}
               href={l.href}
               className={`flex flex-col items-center gap-1 transition-all min-w-14 min-h-11 justify-center ${
@@ -47,7 +46,7 @@ export function BottomNav() {
               >
                 {l.label}
               </span>
-            </Link>
+            </a>
           );
         })}
       </div>
@@ -57,7 +56,6 @@ export function BottomNav() {
 
 export function TopBar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { worker, policy, signOut } = useAppState();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -103,7 +101,9 @@ export function TopBar() {
   const handleSignOut = async () => {
     setProfileOpen(false);
     await signOut();
-    router.push("/");
+    if (typeof window !== "undefined") {
+      window.location.assign("/");
+    }
   };
 
   const themeOptions: {
@@ -123,14 +123,14 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300">
       <div className="max-w-120 mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <a href="/dashboard" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-md bg-linear-to-br from-primary-500 to-primary-700 text-white">
             🛡️
           </div>
           <span className="text-xl font-extrabold text-slate-800 tracking-tight">
             ShiftSafe<span className="text-primary-500 font-medium">DT</span>
           </span>
-        </Link>
+        </a>
 
         <div className="flex items-center gap-2.5">
           <div className="hidden sm:flex sm:items-center sm:gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-500/20 shadow-sm">
@@ -197,13 +197,13 @@ export function TopBar() {
             )}
           </div>
 
-          <Link
+          <a
             href="/admin"
             className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-lg shadow-sm border border-slate-200 transition-all hover:scale-105 active:scale-95"
             aria-label="Admin Dashboard"
           >
             ⚙️
-          </Link>
+          </a>
 
           {/* Profile Avatar */}
           <div className="relative" ref={dropdownRef}>
