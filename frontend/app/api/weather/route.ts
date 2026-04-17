@@ -173,8 +173,8 @@ export async function GET(req: NextRequest) {
   const lonParam = params.get("lon");
 
   // Resolve coordinates
-  let lat: number;
-  let lon: number;
+  let lat: number = CITY_COORDS.mumbai.lat;
+  let lon: number = CITY_COORDS.mumbai.lon;
   let resolvedCity = cityParam;
   if (latParam && lonParam) {
     lat = parseFloat(latParam);

@@ -1507,3 +1507,4 @@ OTP_DEMO_CODE=123456  (hardcoded fallback already present)
   Coverage = Ward-Level (40+ wards) × 9 Cities × 3 Seasonal Windows
   ```
 </div>
+https://shift-safe-dt-frontend-livid.vercel.app/

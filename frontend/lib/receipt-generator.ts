@@ -197,7 +197,7 @@ export function downloadReceipt({ claim, worker, policy }: ReceiptData): void {
 /**
  * Export all claims as a CSV file and trigger download.
  */
-export function downloadClaimsCSV(claims: ClaimData[], workerName?: string): void {
+export function downloadClaimsCSV(claims: any[], workerName?: string): void {
   const headers = [
     'Claim ID',
     'Date',

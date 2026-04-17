@@ -443,7 +443,7 @@ export default function MonitoringPage() {
           fraudColor: getFraudColor(fraudScore),
           payoutRef:
             claimData.settlement?.transactionRef ||
-            (status === "paid" || status === "auto_approved" ? "RAZORPAY-PAYOUT-TXN" : "UNDER-REVIEW"),
+            ((status as string) === "paid" || (status as string) === "auto_approved" ? "RAZORPAY-PAYOUT-TXN" : "UNDER-REVIEW"),
           timestamp: new Date().toISOString(),
           relativeTime: "Just now",
           zone: worker.zone || "Andheri East",
@@ -882,7 +882,16 @@ export default function MonitoringPage() {
 
           {/* Submit Claim Button */}
           <button
-            onClick={handleClaim}
+            onClick={() =>
+              handleClaim({
+                type: "manual",
+                emoji: "🚨",
+                title: "Manual Report",
+                severity: "moderate",
+                value: "Self-reported",
+                eligible: true,
+              })
+            }
             disabled={processing || !evidence}
             className={`w-full mt-4 flex flex-col items-center justify-center py-3 rounded-xl font-bold transition-all text-white shadow-xl ${processing || !evidence ? "bg-slate-700 opacity-50 cursor-not-allowed border-none" : "bg-linear-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 border border-red-400"}`}
           >

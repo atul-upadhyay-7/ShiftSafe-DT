@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 import { AppProvider } from "@/frontend/components/providers/AppProvider";
@@ -44,6 +45,64 @@ const themeScript = `
 })();
 `;
 
+// Guard against browser extensions that patch history APIs and throw
+// during Next.js router navigations (seen as pushState dispatchEvent null errors).
+const historyGuardScript = `
+(function(){
+  if (typeof window === 'undefined' || !window.history) return;
+
+  var originalPush = window.history.pushState
+    ? window.history.pushState.bind(window.history)
+    : null;
+  var originalReplace = window.history.replaceState
+    ? window.history.replaceState.bind(window.history)
+    : null;
+
+  function isDispatchEventNullError(err) {
+    var msg = '';
+    try {
+      msg = err && err.message ? String(err.message) : String(err);
+    } catch (_e) {}
+    return msg.indexOf('dispatchEvent') !== -1 && msg.indexOf('null') !== -1;
+  }
+
+  function asUrlString(url) {
+    if (url == null) return '';
+    try {
+      return String(url);
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  if (originalPush) {
+    window.history.pushState = function pushStateSafe(state, title, url) {
+      try {
+        return originalPush(state, title, url);
+      } catch (err) {
+        if (!isDispatchEventNullError(err)) throw err;
+        var target = asUrlString(url);
+        if (target) window.location.assign(target);
+      }
+    };
+  }
+
+  if (originalReplace) {
+    window.history.replaceState = function replaceStateSafe(state, title, url) {
+      try {
+        return originalReplace(state, title, url);
+      } catch (err) {
+        if (!isDispatchEventNullError(err)) throw err;
+        var target = asUrlString(url);
+        if (target && target !== window.location.href) {
+          window.location.replace(target);
+        }
+      }
+    };
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -52,14 +111,19 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script id="shiftsafe-theme-init" strategy="beforeInteractive">
+          {themeScript}
+        </Script>
+        <Script id="shiftsafe-history-guard" strategy="beforeInteractive">
+          {historyGuardScript}
+        </Script>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#f97316" />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
-        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
